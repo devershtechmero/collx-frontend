@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
 
-import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { ThemeToggle } from "@/components/shared/theme/theme-toggle";
 import { DOWNLOAD_APP_LINK, NAV_ITEMS } from "@/lib/constants/navigation";
 
 export function SiteHeader() {

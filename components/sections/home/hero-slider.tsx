@@ -56,7 +56,6 @@ export function HeroSlider() {
               </div>
             );
           })}
-
         </div>
       </div>
     </section>

@@ -1,22 +1,44 @@
 "use client";
 
-import Link from "next/link";
 import { X } from "lucide-react";
 import { useEffect, useState } from "react";
 
+import { GoogleAuthButton } from "@/components/shared/auth/google-auth-button";
+
+type AuthMode = "register" | "login";
 type SignupStep = "form" | "verify";
 
 const OTP_LENGTH = 8;
 
 export function AuthCta() {
-  const [isRegisterOpen, setIsRegisterOpen] = useState(false);
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [authMode, setAuthMode] = useState<AuthMode>("register");
   const [signupStep, setSignupStep] = useState<SignupStep>("form");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [otp, setOtp] = useState("");
 
-  function closeRegisterPopup() {
-    setIsRegisterOpen(false);
+  function openRegisterPopup() {
+    setAuthMode("register");
+    setSignupStep("form");
+    setEmail("");
+    setPassword("");
+    setOtp("");
+    setIsAuthOpen(true);
+  }
+
+  function openLoginPopup() {
+    setAuthMode("login");
+    setSignupStep("form");
+    setEmail("");
+    setPassword("");
+    setOtp("");
+    setIsAuthOpen(true);
+  }
+
+  function closeAuthPopup() {
+    setIsAuthOpen(false);
+    setAuthMode("register");
     setSignupStep("form");
     setEmail("");
     setPassword("");
@@ -24,7 +46,7 @@ export function AuthCta() {
   }
 
   useEffect(() => {
-    if (!isRegisterOpen) {
+    if (!isAuthOpen) {
       return;
     }
 
@@ -34,16 +56,16 @@ export function AuthCta() {
     return () => {
       document.body.style.overflow = previousOverflow;
     };
-  }, [isRegisterOpen]);
+  }, [isAuthOpen]);
 
   useEffect(() => {
-    if (!isRegisterOpen) {
+    if (!isAuthOpen) {
       return;
     }
 
     function handleEscape(event: KeyboardEvent) {
       if (event.key === "Escape") {
-        closeRegisterPopup();
+        closeAuthPopup();
       }
     }
 
@@ -52,7 +74,7 @@ export function AuthCta() {
     return () => {
       window.removeEventListener("keydown", handleEscape);
     };
-  }, [isRegisterOpen]);
+  }, [isAuthOpen]);
 
   function handleCreateAccount(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -63,6 +85,10 @@ export function AuthCta() {
 
     setOtp("");
     setSignupStep("verify");
+  }
+
+  function handleLogin(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
   }
 
   function handleOtpChange(event: React.ChangeEvent<HTMLInputElement>) {
@@ -92,43 +118,44 @@ export function AuthCta() {
             <div className="flex flex-col gap-3 sm:flex-row">
               <button
                 type="button"
-                onClick={() => setIsRegisterOpen(true)}
+                onClick={openRegisterPopup}
                 className="inline-flex items-center justify-center rounded-full border border-current/30 px-6 py-3 text-sm font-semibold text-foreground transition-colors duration-200 hover:cursor-pointer hover:bg-foreground/8"
               >
                 Register Now
               </button>
 
-              <Link
-                href="/login"
-                className="inline-flex items-center justify-center rounded-full border border-current/30 px-6 py-3 text-sm font-semibold text-foreground transition-colors duration-200 hover:bg-foreground/8"
+              <button
+                type="button"
+                onClick={openLoginPopup}
+                className="inline-flex items-center justify-center rounded-full border border-current/30 px-6 py-3 text-sm font-semibold text-foreground transition-colors duration-200 hover:cursor-pointer hover:bg-foreground/8"
               >
                 Login
-              </Link>
+              </button>
             </div>
           </div>
         </div>
       </section>
 
-      {isRegisterOpen ? (
+      {isAuthOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-8">
           <button
             type="button"
-            aria-label="Close register popup"
+            aria-label="Close auth popup"
             className="absolute inset-0 bg-black/55 backdrop-blur-sm"
-            onClick={closeRegisterPopup}
+            onClick={closeAuthPopup}
           />
 
           <div className="relative z-10 w-full max-w-md rounded-xl border border-current/15 bg-background px-6 pb-6 pt-16 text-foreground shadow-[0_25px_100px_-35px_rgba(0,0,0,0.7)] sm:px-8 sm:pb-8 sm:pt-18">
             <button
               type="button"
-              aria-label="Close register popup"
-              onClick={closeRegisterPopup}
+              aria-label="Close auth popup"
+              onClick={closeAuthPopup}
               className="absolute right-4 top-4 inline-flex h-10 w-10 items-center justify-center rounded-full border border-current/15 transition-colors duration-200 hover:bg-foreground/8"
             >
               <X className="h-5 w-5 hover:cursor-pointer" />
             </button>
 
-            {signupStep === "form" ? (
+            {authMode === "register" && signupStep === "form" ? (
               <>
                 <div className="pr-12">
                   <h3 className="text-2xl font-semibold tracking-[-0.04em]">
@@ -139,34 +166,7 @@ export function AuthCta() {
                   </p>
                 </div>
 
-                <button
-                  type="button"
-                  className="mt-6 flex w-full items-center justify-center gap-3 rounded-2xl border border-current/15 px-4 py-3 text-sm font-semibold transition-colors duration-200 hover:cursor-pointer hover:bg-foreground/6"
-                >
-                  <svg
-                    aria-hidden="true"
-                    viewBox="0 0 24 24"
-                    className="h-5 w-5"
-                  >
-                    <path
-                      fill="#4285F4"
-                      d="M21.35 11.1H12v2.98h5.36c-.23 1.51-1.73 4.43-5.36 4.43a5.97 5.97 0 0 1 0-11.94c2.07 0 3.45.88 4.24 1.63l2.9-2.8C17.3 3.69 14.92 2.5 12 2.5a9.5 9.5 0 1 0 0 19c5.48 0 9.12-3.85 9.12-9.28 0-.63-.07-.9-.15-1.12Z"
-                    />
-                    <path
-                      fill="#34A853"
-                      d="M12 21.5c2.6 0 4.79-.86 6.38-2.33l-3.05-2.36c-.82.56-1.88.95-3.33.95-2.56 0-4.73-1.73-5.5-4.06H3.35v2.54A9.5 9.5 0 0 0 12 21.5Z"
-                    />
-                    <path
-                      fill="#FBBC05"
-                      d="M6.5 13.7A5.72 5.72 0 0 1 6.2 12c0-.59.1-1.16.28-1.7V7.77H3.35a9.5 9.5 0 0 0 0 8.46L6.5 13.7Z"
-                    />
-                    <path
-                      fill="#EA4335"
-                      d="M12 6.24c1.45 0 2.75.5 3.78 1.5l2.84-2.76C16.78 3.3 14.6 2.5 12 2.5a9.5 9.5 0 0 0-8.65 5.27l3.13 2.53c.76-2.33 2.94-4.06 5.52-4.06Z"
-                    />
-                  </svg>
-                  Continue with Google
-                </button>
+                <GoogleAuthButton label="Continue with Google" className="mt-6" />
 
                 <div className="my-6 flex items-center gap-4">
                   <div className="h-px flex-1 bg-current/15" />
@@ -213,14 +213,18 @@ export function AuthCta() {
 
                 <p className="mt-5 text-center text-sm">
                   Already have an account ?{" "}
-                  <Link href="/login" className="">
+                  <button
+                    type="button"
+                    onClick={openLoginPopup}
+                    className="font-semibold text-foreground underline underline-offset-4 hover:cursor-pointer"
+                  >
                     Login
-                  </Link>
+                  </button>
                 </p>
               </>
             ) : null}
 
-            {signupStep === "verify" ? (
+            {authMode === "register" && signupStep === "verify" ? (
               <div className="space-y-5 pt-4">
                 <div className="rounded-2xl border border-current/15 bg-foreground/4 px-4 py-4">
                   <h4 className="text-lg font-semibold">Verify your account</h4>
@@ -257,6 +261,84 @@ export function AuthCta() {
                   Complete sign up
                 </button>
               </div>
+            ) : null}
+
+            {authMode === "login" ? (
+              <>
+                <div className="pr-12">
+                  <h3 className="text-2xl font-semibold tracking-[-0.04em]">
+                    Welcome back
+                  </h3>
+                  <p className="mt-2 text-sm leading-6 text-foreground/70">
+                    Log in to continue your collection workflow and pick up
+                    where you left off.
+                  </p>
+                </div>
+
+                <GoogleAuthButton label="Continue with Google" className="mt-6" />
+
+                <div className="my-6 flex items-center gap-4">
+                  <div className="h-px flex-1 bg-current/15" />
+                  <span className="text-xs font-medium uppercase tracking-[0.22em] text-foreground/55">
+                    Or
+                  </span>
+                  <div className="h-px flex-1 bg-current/15" />
+                </div>
+
+                <form className="space-y-4" onSubmit={handleLogin}>
+                  <label className="block space-y-2">
+                    <span className="text-sm font-medium text-foreground/75">
+                      Email
+                    </span>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(event) => setEmail(event.target.value)}
+                      placeholder="Enter your email"
+                      className="w-full rounded-2xl border border-current/15 bg-background px-4 py-3 text-sm outline-none transition-colors duration-200 placeholder:text-foreground/40 focus:border-current/35"
+                    />
+                  </label>
+
+                  <label className="block space-y-2">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-sm font-medium text-foreground/75">
+                        Password
+                      </span>
+                      <button
+                        type="button"
+                        className="text-xs font-medium text-foreground/60 underline underline-offset-4 hover:cursor-pointer"
+                      >
+                        Forgot password?
+                      </button>
+                    </div>
+                    <input
+                      type="password"
+                      value={password}
+                      onChange={(event) => setPassword(event.target.value)}
+                      placeholder="Enter your password"
+                      className="w-full rounded-2xl border border-current/15 bg-background px-4 py-3 text-sm outline-none transition-colors duration-200 placeholder:text-foreground/40 focus:border-current/35"
+                    />
+                  </label>
+
+                  <button
+                    type="submit"
+                    className="inline-flex w-full items-center justify-center rounded-full border border-current/30 px-5 py-3 text-sm font-semibold text-foreground transition-colors duration-200 hover:bg-foreground/8"
+                  >
+                    Login
+                  </button>
+                </form>
+
+                <p className="mt-5 text-center text-sm text-foreground/72">
+                  Don&apos;t have an account?{" "}
+                  <button
+                    type="button"
+                    onClick={openRegisterPopup}
+                    className="font-semibold text-foreground underline underline-offset-4 hover:cursor-pointer"
+                  >
+                    Register now
+                  </button>
+                </p>
+              </>
             ) : null}
           </div>
         </div>
