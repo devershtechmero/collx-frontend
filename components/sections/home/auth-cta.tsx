@@ -1,12 +1,13 @@
 "use client";
 
 import { X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { GoogleAuthButton } from "@/components/shared/auth/google-auth-button";
 
-type AuthMode = "register" | "login";
+type AuthMode = "register" | "login" | "forgot-password";
 type SignupStep = "form" | "verify";
+type ForgotPasswordStep = "email" | "verify" | "reset" | "success";
 
 const OTP_LENGTH = 8;
 
@@ -14,36 +15,47 @@ export function AuthCta() {
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<AuthMode>("register");
   const [signupStep, setSignupStep] = useState<SignupStep>("form");
+  const [forgotPasswordStep, setForgotPasswordStep] =
+    useState<ForgotPasswordStep>("email");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [otp, setOtp] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
-  function openRegisterPopup() {
-    setAuthMode("register");
+  function resetAuthState() {
     setSignupStep("form");
+    setForgotPasswordStep("email");
     setEmail("");
     setPassword("");
     setOtp("");
+    setNewPassword("");
+    setConfirmPassword("");
+  }
+
+  function openRegisterPopup() {
+    setAuthMode("register");
+    resetAuthState();
     setIsAuthOpen(true);
   }
 
   function openLoginPopup() {
     setAuthMode("login");
-    setSignupStep("form");
-    setEmail("");
-    setPassword("");
-    setOtp("");
+    resetAuthState();
     setIsAuthOpen(true);
   }
 
-  function closeAuthPopup() {
+  function openForgotPasswordPopup() {
+    setAuthMode("forgot-password");
+    resetAuthState();
+    setIsAuthOpen(true);
+  }
+
+  const closeAuthPopup = useCallback(() => {
     setIsAuthOpen(false);
     setAuthMode("register");
-    setSignupStep("form");
-    setEmail("");
-    setPassword("");
-    setOtp("");
-  }
+    resetAuthState();
+  }, []);
 
   useEffect(() => {
     if (!isAuthOpen) {
@@ -74,7 +86,7 @@ export function AuthCta() {
     return () => {
       window.removeEventListener("keydown", handleEscape);
     };
-  }, [isAuthOpen]);
+  }, [closeAuthPopup, isAuthOpen]);
 
   function handleCreateAccount(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -95,7 +107,48 @@ export function AuthCta() {
     setOtp(event.target.value.replace(/\D/g, "").slice(0, OTP_LENGTH));
   }
 
-  const isOtpComplete = otp.length === OTP_LENGTH;
+  function handleForgotPasswordEmailSubmit(
+    event: React.FormEvent<HTMLFormElement>,
+  ) {
+    event.preventDefault();
+
+    if (!email) {
+      return;
+    }
+
+    setOtp("");
+    setForgotPasswordStep("verify");
+  }
+
+  function handleForgotPasswordOtpSubmit(
+    event: React.FormEvent<HTMLFormElement>,
+  ) {
+    event.preventDefault();
+
+    if (otp.length !== OTP_LENGTH) {
+      return;
+    }
+
+    setForgotPasswordStep("reset");
+  }
+
+  function handleForgotPasswordResetSubmit(
+    event: React.FormEvent<HTMLFormElement>,
+  ) {
+    event.preventDefault();
+
+    if (!passwordsMatch) {
+      return;
+    }
+
+    setForgotPasswordStep("success");
+  }
+
+  const isSignupOtpComplete = otp.length === OTP_LENGTH;
+  const passwordsMatch =
+    newPassword.length > 0 &&
+    confirmPassword.length > 0 &&
+    newPassword === confirmPassword;
 
   return (
     <>
@@ -255,7 +308,7 @@ export function AuthCta() {
 
                 <button
                   type="button"
-                  disabled={!isOtpComplete}
+                  disabled={!isSignupOtpComplete}
                   className="inline-flex w-full items-center justify-center rounded-full border border-current/30 px-5 py-3 text-sm font-semibold text-foreground transition-transform duration-200 hover:bg-foreground/8 disabled:cursor-not-allowed disabled:opacity-45"
                 >
                   Complete sign up
@@ -306,6 +359,7 @@ export function AuthCta() {
                       </span>
                       <button
                         type="button"
+                        onClick={openForgotPasswordPopup}
                         className="text-xs font-medium text-foreground/60 underline underline-offset-4 hover:cursor-pointer"
                       >
                         Forgot password?
@@ -339,6 +393,177 @@ export function AuthCta() {
                   </button>
                 </p>
               </>
+            ) : null}
+
+            {authMode === "forgot-password" && forgotPasswordStep === "email" ? (
+              <>
+                <div className="pr-12">
+                  <h3 className="text-2xl font-semibold tracking-[-0.04em]">
+                    Forgot password
+                  </h3>
+                  <p className="mt-2 text-sm leading-6 text-foreground/70">
+                    Enter your email and we&apos;ll simulate sending an OTP for
+                    password recovery.
+                  </p>
+                </div>
+
+                <form
+                  className="mt-6 space-y-4"
+                  onSubmit={handleForgotPasswordEmailSubmit}
+                >
+                  <label className="block space-y-2">
+                    <span className="text-sm font-medium text-foreground/75">
+                      Email
+                    </span>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(event) => setEmail(event.target.value)}
+                      placeholder="Enter your email"
+                      className="w-full rounded-2xl border border-current/15 bg-background px-4 py-3 text-sm outline-none transition-colors duration-200 placeholder:text-foreground/40 focus:border-current/35"
+                    />
+                  </label>
+
+                  <button
+                    type="submit"
+                    className="inline-flex w-full items-center justify-center rounded-full border border-current/30 px-5 py-3 text-sm font-semibold text-foreground transition-colors duration-200 hover:bg-foreground/8"
+                  >
+                    Send OTP
+                  </button>
+                </form>
+              </>
+            ) : null}
+
+            {authMode === "forgot-password" &&
+            forgotPasswordStep === "verify" ? (
+              <>
+                <div className="pr-12">
+                  <h3 className="text-2xl font-semibold tracking-[-0.04em]">
+                    OTP verification
+                  </h3>
+                  <p className="mt-2 text-sm leading-6 text-foreground/70">
+                    We simulated sending an 8 digit OTP to{" "}
+                    <span className="font-semibold text-foreground">
+                      {email}
+                    </span>
+                    .
+                  </p>
+                </div>
+
+                <form
+                  className="mt-6 space-y-4"
+                  onSubmit={handleForgotPasswordOtpSubmit}
+                >
+                  <label className="block space-y-2">
+                    <span className="text-sm font-medium text-foreground/75">
+                      OTP
+                    </span>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={OTP_LENGTH}
+                      value={otp}
+                      onChange={handleOtpChange}
+                      placeholder="Enter 8 digit OTP"
+                      className="w-full rounded-2xl border border-current/15 bg-background px-4 py-3 text-sm outline-none transition-colors duration-200 placeholder:text-foreground/40 focus:border-current/35"
+                    />
+                  </label>
+
+                  <button
+                    type="submit"
+                    disabled={otp.length !== OTP_LENGTH}
+                    className="inline-flex w-full items-center justify-center rounded-full border border-current/30 px-5 py-3 text-sm font-semibold text-foreground transition-colors duration-200 hover:bg-foreground/8 disabled:cursor-not-allowed disabled:opacity-45"
+                  >
+                    Verify OTP
+                  </button>
+                </form>
+              </>
+            ) : null}
+
+            {authMode === "forgot-password" &&
+            forgotPasswordStep === "reset" ? (
+              <>
+                <div className="pr-12">
+                  <h3 className="text-2xl font-semibold tracking-[-0.04em]">
+                    Set new password
+                  </h3>
+                  <p className="mt-2 text-sm leading-6 text-foreground/70">
+                    Create a new password for{" "}
+                    <span className="font-semibold text-foreground">
+                      {email}
+                    </span>
+                    .
+                  </p>
+                </div>
+
+                <form
+                  className="mt-6 space-y-4"
+                  onSubmit={handleForgotPasswordResetSubmit}
+                >
+                  <label className="block space-y-2">
+                    <span className="text-sm font-medium text-foreground/75">
+                      New password
+                    </span>
+                    <input
+                      type="password"
+                      value={newPassword}
+                      onChange={(event) => setNewPassword(event.target.value)}
+                      placeholder="Enter new password"
+                      className="w-full rounded-2xl border border-current/15 bg-background px-4 py-3 text-sm outline-none transition-colors duration-200 placeholder:text-foreground/40 focus:border-current/35"
+                    />
+                  </label>
+
+                  <label className="block space-y-2">
+                    <span className="text-sm font-medium text-foreground/75">
+                      Confirm new password
+                    </span>
+                    <input
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(event) => setConfirmPassword(event.target.value)}
+                      placeholder="Confirm new password"
+                      className="w-full rounded-2xl border border-current/15 bg-background px-4 py-3 text-sm outline-none transition-colors duration-200 placeholder:text-foreground/40 focus:border-current/35"
+                    />
+                  </label>
+
+                  {!passwordsMatch && confirmPassword.length > 0 ? (
+                    <p className="text-sm text-foreground/65">
+                      New password and confirm password must match.
+                    </p>
+                  ) : null}
+
+                  <button
+                    type="submit"
+                    disabled={!passwordsMatch}
+                    className="inline-flex w-full items-center justify-center rounded-full border border-current/30 px-5 py-3 text-sm font-semibold text-foreground transition-colors duration-200 hover:bg-foreground/8 disabled:cursor-not-allowed disabled:opacity-45"
+                  >
+                    Update password
+                  </button>
+                </form>
+              </>
+            ) : null}
+
+            {authMode === "forgot-password" &&
+            forgotPasswordStep === "success" ? (
+              <div className="space-y-5">
+                <div className="pr-12">
+                  <h3 className="text-2xl font-semibold tracking-[-0.04em]">
+                    Password updated
+                  </h3>
+                  <p className="mt-2 text-sm leading-6 text-foreground/70">
+                    Your password has been reset successfully. You can now log
+                    in with your new password.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={openLoginPopup}
+                  className="inline-flex w-full items-center justify-center rounded-full border border-current/30 px-5 py-3 text-sm font-semibold text-foreground transition-colors duration-200 hover:bg-foreground/8"
+                >
+                  Go to login
+                </button>
+              </div>
             ) : null}
           </div>
         </div>
