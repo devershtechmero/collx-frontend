@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 export function useAuth() {
   const [user, setUser] = useState<{ email: string; name: string } | null>(null);
@@ -22,8 +23,10 @@ export function useAuth() {
       localStorage.setItem("collx_user", JSON.stringify(newUser));
       setUser(newUser);
       router.push("/dashboard");
+      toast.success("Welcome back, Root Admin!");
       return true;
     }
+    toast.error("Invalid email or password");
     return false;
   };
 
@@ -31,6 +34,7 @@ export function useAuth() {
     localStorage.removeItem("collx_user");
     setUser(null);
     router.push("/");
+    toast.info("Logged out successfully");
   };
 
   return { user, login, logout, isLoading };

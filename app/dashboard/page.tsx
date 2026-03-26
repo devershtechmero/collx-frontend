@@ -5,6 +5,7 @@ import { TRENDING_CARDS, type Card } from "@/lib/mock/cards";
 import { CardItem } from "@/components/shared/cards/card-item";
 import { addCapturedCard } from "@/lib/store/collection-store";
 import { X, Camera, CheckCircle2, Loader2, ChevronLeft, ChevronRight, TrendingUp, Scan } from "lucide-react";
+import { toast } from "sonner";
 
 export default function DashboardHome() {
   const [isScanning, setIsScanning] = useState(false);
@@ -25,7 +26,7 @@ export default function DashboardHome() {
       }
     } catch (err) {
       console.error("Error accessing camera:", err);
-      alert("Camera access denied or not available.");
+      toast.error("Camera access denied or not available. Please check your permissions.");
       setIsScanning(false);
     }
   };
@@ -72,6 +73,7 @@ export default function DashboardHome() {
         };
         addCapturedCard(newCard);
         setScanStatus("success");
+        toast.success("Card identified and added to your collection!");
         
         // Auto close after success
         setTimeout(() => stopScan(), 2000);
