@@ -132,10 +132,10 @@ export default function DashboardHome() {
 
       {/* Full-Screen Scanner Overlay */}
       {isScanning && (
-        <div className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center animate-in fade-in duration-500">
+        <div className="fixed inset-0 z-[100] bg-black h-screen w-screen flex flex-col items-center justify-center animate-in fade-in duration-500 overflow-hidden">
           <button 
             onClick={stopScan}
-            className="absolute top-8 right-8 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white backdrop-blur-md transition-all z-10"
+            className="absolute top-8 right-8 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white backdrop-blur-md transition-all z-[110]"
           >
             <X size={24} />
           </button>
@@ -145,7 +145,7 @@ export default function DashboardHome() {
               ref={videoRef} 
               autoPlay 
               playsInline 
-              className="h-full w-full object-cover"
+              className={`h-full w-full object-cover transition-opacity duration-300 ${scanStatus === "review" || scanStatus === "success" ? "opacity-0" : "opacity-100"}`}
             />
             
             {/* Scanner UI Overlays */}
