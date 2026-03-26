@@ -4,6 +4,7 @@ import { X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
 import { GoogleAuthButton } from "@/components/shared/auth/google-auth-button";
+import { useAuth } from "@/lib/hooks/use-auth";
 
 type AuthMode = "register" | "login" | "forgot-password";
 type SignupStep = "form" | "verify";
@@ -22,6 +23,9 @@ export function AuthCta() {
   const [otp, setOtp] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  
+  const { login } = useAuth();
 
   function resetAuthState() {
     setSignupStep("form");
@@ -101,6 +105,13 @@ export function AuthCta() {
 
   function handleLogin(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setError(null);
+    const success = login(email, password);
+    if (!success) {
+      setError("Invalid email or password. Use root@gmail.com / root");
+    } else {
+      closeAuthPopup();
+    }
   }
 
   function handleOtpChange(event: React.ChangeEvent<HTMLInputElement>) {
@@ -373,6 +384,12 @@ export function AuthCta() {
                       className="w-full rounded-2xl border border-current/15 bg-background px-4 py-3 text-sm outline-none transition-colors duration-200 placeholder:text-foreground/40 focus:border-current/35"
                     />
                   </label>
+
+                  {error && (
+                    <p className="text-xs font-bold text-red-500 bg-red-500/10 p-3 rounded-xl border border-red-500/20">
+                      {error}
+                    </p>
+                  )}
 
                   <button
                     type="submit"
