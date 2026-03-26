@@ -111,15 +111,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
           </div>
 
-          <div className="flex items-center gap-2 md:gap-4">
-
-            <div className="flex items-center gap-4 border-l border-current/10 pl-6 h-8">
-              <ThemeToggle />
-            </div>
-
+          <div className="flex items-center gap-2 bg-current/[0.03] backdrop-blur-md rounded-full p-2.5 border border-current/10 shadow-sm active:scale-[0.99] transition-all">
+            <ThemeToggle />
+            <div className="w-px h-5 bg-current/10 mx-1" />
             <button
               onClick={logout}
-              className="flex items-center bg-red-500/40 px-3 md:px-4 rounded-full gap-2 text-sm font-medium text-red-500 hover:text-red-600 transition-colors h-8"
+              className="flex items-center bg-red-500 hover:bg-red-600 px-4 md:px-5 rounded-full gap-2 text-xs font-semibold text-white transition-all h-9 shadow-lg shadow-red-500/20 active:scale-95"
             >
               <LogOut size={16} />
               <span>Logout</span>

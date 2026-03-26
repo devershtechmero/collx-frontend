@@ -69,35 +69,6 @@ export default function CollectionPage() {
           </div>
         )}
       </div>
-
-      {/* Stats Floating Bar */}
-      <div className="fixed bottom-8 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] md:w-[calc(100%-4rem)] max-w-2xl z-20">
-        <div className="bg-background/80 text-foreground rounded-3xl md:rounded-full px-4 md:px-8 py-4 md:py-6 shadow-2xl flex items-center justify-between border border-current/10 backdrop-blur-xl">
-          <div className="flex items-center gap-4 md:gap-8">
-            <div className="space-y-0.5">
-              <p className="text-[9px] md:text-[10px] uppercase font-bold tracking-widest text-foreground/40">Total Cards</p>
-              <div className="flex items-baseline gap-1">
-                <span className="text-lg md:text-2xl font-bold">{collection.length}</span>
-                <span className="text-[9px] md:text-[10px] font-bold opacity-30">PCS</span>
-              </div>
-            </div>
-            <div className="w-px h-8 md:h-10 bg-current/10" />
-            <div className="space-y-0.5">
-              <p className="text-[9px] md:text-[10px] uppercase font-bold tracking-widest text-foreground/40">Est. Market Value</p>
-              <div className="flex items-baseline gap-1">
-                <span className="text-lg md:text-2xl font-bold">${totalValue.toLocaleString()}</span>
-                <span className="text-[9px] md:text-[10px] font-bold opacity-30">USD</span>
-              </div>
-            </div>
-          </div>
-          
-          <button className="bg-foreground text-background px-4 md:px-6 py-2.5 md:py-3 rounded-full font-bold text-xs md:text-sm flex items-center gap-2 hover:scale-105 active:scale-95 transition-all">
-            <Wallet size={14} className="md:w-4 md:h-4" />
-            <span className="hidden sm:inline">Manage Assets</span>
-            <span className="sm:hidden">Manage</span>
-          </button>
-        </div>
-      </div>
     </div>
   );
 }
