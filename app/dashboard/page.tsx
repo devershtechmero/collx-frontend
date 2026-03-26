@@ -181,50 +181,58 @@ export default function DashboardHome() {
                 )}
 
                 {scanStatus === "review" && scannedCard && (
-                  <div className="flex flex-col items-center gap-6 bg-background p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] w-[90%] max-w-sm animate-in zoom-in-95 duration-300 shadow-2xl border border-current/10 max-h-[90vh] overflow-y-auto no-scrollbar">
-                    <div className="relative w-full aspect-[3/4] rounded-2xl overflow-hidden shadow-lg border border-current/5 shrink-0">
-                      <img src={scannedCard.image} className="w-full h-full object-cover" alt="Scanned Card" />
+                  <div className="flex flex-col md:flex-row items-stretch gap-0 bg-background rounded-[2rem] md:rounded-[2.5rem] w-[95%] max-w-2xl animate-in zoom-in-95 duration-300 shadow-2xl border border-current/10 max-h-[90vh] overflow-hidden">
+                    {/* Left Side: Preview */}
+                    <div className="w-full md:w-1/2 bg-foreground/5 p-6 flex items-center justify-center">
+                      <div className="relative w-full aspect-[3/4] rounded-2xl overflow-hidden shadow-2xl border border-current/5">
+                        <img src={scannedCard.image} className="w-full h-full object-cover" alt="Scanned Card" />
+                      </div>
                     </div>
                     
-                    <div className="w-full space-y-4">
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] uppercase font-bold tracking-widest text-foreground/40 px-1">Card Name</label>
-                        <input 
-                          type="text" 
-                          value={scannedCard.name}
-                          onChange={(e) => setScannedCard({...scannedCard, name: e.target.value})}
-                          className="w-full bg-foreground/5 border-none rounded-xl px-4 py-3 font-bold text-foreground focus:ring-2 ring-primary/20 transition-all outline-none"
-                        />
-                      </div>
-                      
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] uppercase font-bold tracking-widest text-foreground/40 px-1">Market Price (USD)</label>
-                        <div className="relative">
-                          <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-foreground/40">$</span>
+                    {/* Right Side: Details */}
+                    <div className="w-full md:w-1/2 p-6 md:p-8 flex flex-col justify-center gap-6">
+                      <div className="space-y-4">
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] uppercase font-bold tracking-widest text-foreground/40 px-1">Card Name</label>
                           <input 
-                            type="number" 
-                            value={scannedCard.price}
-                            onChange={(e) => setScannedCard({...scannedCard, price: Number(e.target.value)})}
-                            className="w-full bg-foreground/5 border-none rounded-xl pl-8 pr-4 py-3 font-bold text-foreground focus:ring-2 ring-primary/20 transition-all outline-none"
+                            type="text" 
+                            value={scannedCard.name}
+                            onChange={(e) => setScannedCard({...scannedCard, name: e.target.value})}
+                            className="w-full bg-foreground/5 border-none rounded-2xl px-4 py-4 font-bold text-foreground focus:ring-2 ring-primary/20 transition-all outline-none"
                           />
                         </div>
+                        
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] uppercase font-bold tracking-widest text-foreground/40 px-1">Market Price (USD)</label>
+                          <div className="relative">
+                            <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-foreground/40 text-lg">$</span>
+                            <input 
+                              type="number" 
+                              value={scannedCard.price}
+                              onChange={(e) => setScannedCard({...scannedCard, price: Number(e.target.value)})}
+                              className="w-full bg-foreground/5 border-none rounded-2xl pl-10 pr-4 py-4 font-bold text-foreground text-lg focus:ring-2 ring-primary/20 transition-all outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col gap-3 pt-2">
+                        <button 
+                          onClick={confirmAddCard}
+                          className="w-full bg-foreground text-background py-4 rounded-full font-bold text-lg hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-foreground/10 flex items-center justify-center gap-2"
+                        >
+                          <Scan size={20} />
+                          <span>Add to Collection</span>
+                        </button>
+                        
+                        <button 
+                          onClick={() => { setScanStatus("idle"); setScannedCard(null); }}
+                          className="w-full py-4 rounded-full font-bold text-foreground/60 hover:text-foreground hover:bg-foreground/5 transition-all uppercase tracking-widest text-xs flex items-center justify-center gap-2"
+                        >
+                          Retake
+                        </button>
                       </div>
                     </div>
-
-                    <button 
-                      onClick={confirmAddCard}
-                      className="w-full bg-foreground text-background py-4 rounded-full font-bold text-base md:text-lg hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-foreground/10 flex items-center justify-center gap-2"
-                    >
-                      <Scan size={20} />
-                      <span>Add to Collection</span>
-                    </button>
-                    
-                    <button 
-                      onClick={() => { setScanStatus("idle"); setScannedCard(null); }}
-                      className="text-xs font-bold text-foreground/40 hover:text-foreground transition-colors uppercase tracking-widest"
-                    >
-                      Discard & Retake
-                    </button>
                   </div>
                 )}
 
