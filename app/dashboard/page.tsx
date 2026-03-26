@@ -9,7 +9,8 @@ import { toast } from "sonner";
 
 export default function DashboardHome() {
   const [isScanning, setIsScanning] = useState(false);
-  const [scanStatus, setScanStatus] = useState<"idle" | "capturing" | "identifying" | "success">("idle");
+  const [scanStatus, setScanStatus] = useState<"idle" | "capturing" | "identifying" | "review" | "success">("idle");
+  const [scannedCard, setScannedCard] = useState<Card | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -59,25 +60,35 @@ export default function DashboardHome() {
       // Simulate identification process
       setScanStatus("identifying");
       setTimeout(() => {
-        const newCard: Card = {
+        const identifiedCard: Card = {
           id: `scanned-${Date.now()}`,
-          name: "Recently Scanned Card",
-          player: "Identified Player",
-          set: "CollX Scanner 2026",
-          rarity: "Super Rare",
-          category: "Pokemon",
-          price: Math.floor(Math.random() * 500) + 50,
+          name: "Blue-Eyes White Dragon",
+          player: "Kaiba Spec",
+          set: "Legend of Blue Eyes White Dragon",
+          rarity: "Ultra Rare",
+          category: "Yu-Gi-Oh",
+          price: Math.floor(Math.random() * 500) + 150,
           image: imageData,
-          change: "+15.2%",
+          change: "+5.4%",
           isTrending: true
         };
-        addCapturedCard(newCard);
-        setScanStatus("success");
-        toast.success("Card identified and added to your collection!");
-        
-        // Auto close after success
-        setTimeout(() => stopScan(), 2000);
+        setScannedCard(identifiedCard);
+        setScanStatus("review");
       }, 1500);
+    }
+  };
+
+  const confirmAddCard = () => {
+    if (scannedCard) {
+      addCapturedCard(scannedCard);
+      setScanStatus("success");
+      toast.success("Card identified and added to your collection!");
+      
+      // Auto close after success
+      setTimeout(() => {
+        stopScan();
+        setScannedCard(null);
+      }, 2000);
     }
   };
 
@@ -140,14 +151,16 @@ export default function DashboardHome() {
             {/* Scanner UI Overlays */}
             <div className="absolute inset-0 flex flex-col items-center justify-center">
               {/* Aiming Box */}
-              <div className="relative w-72 h-[440px] md:w-80 md:h-[480px] border-2 border-white/50 rounded-3xl shadow-[0_0_0_100vw_rgba(0,0,0,0.6)]">
-                <div className="absolute inset-0 border-2 border-primary/40 rounded-3xl animate-pulse" />
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-full pb-4">
-                  <p className="text-white font-bold text-sm tracking-widest uppercase bg-black/40 px-4 py-1 rounded-full backdrop-blur-md">
-                    Position card within frame
-                  </p>
+              {scanStatus === "idle" && (
+                <div className="relative w-72 h-[500px] md:w-80 md:h-[500px] border-2 border-white/50 rounded-3xl shadow-[0_0_0_100vw_rgba(0,0,0,0.6)]">
+                  <div className="absolute inset-0 border-2 border-primary/40 rounded-3xl animate-pulse" />
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-full pb-4 text-center w-full">
+                    <p className="text-white font-bold text-sm tracking-widest uppercase bg-black/40 px-4 py-1 rounded-full backdrop-blur-md inline-block">
+                      Position card within frame
+                    </p>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Action UI */}
               <div className="absolute bottom-12 w-full flex flex-col items-center gap-6">
@@ -164,6 +177,54 @@ export default function DashboardHome() {
                   <div className="flex flex-col items-center gap-4 bg-black/60 p-6 rounded-3xl backdrop-blur-md border border-white/10">
                     <Loader2 className="animate-spin text-primary" size={40} />
                     <p className="text-white font-bold tracking-tight">Identifying Card...</p>
+                  </div>
+                )}
+
+                {scanStatus === "review" && scannedCard && (
+                  <div className="flex flex-col items-center gap-6 bg-background p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] w-[90%] max-w-sm animate-in zoom-in-95 duration-300 shadow-2xl border border-current/10 max-h-[90vh] overflow-y-auto no-scrollbar">
+                    <div className="relative w-full aspect-[3/4] rounded-2xl overflow-hidden shadow-lg border border-current/5 shrink-0">
+                      <img src={scannedCard.image} className="w-full h-full object-cover" alt="Scanned Card" />
+                    </div>
+                    
+                    <div className="w-full space-y-4">
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] uppercase font-bold tracking-widest text-foreground/40 px-1">Card Name</label>
+                        <input 
+                          type="text" 
+                          value={scannedCard.name}
+                          onChange={(e) => setScannedCard({...scannedCard, name: e.target.value})}
+                          className="w-full bg-foreground/5 border-none rounded-xl px-4 py-3 font-bold text-foreground focus:ring-2 ring-primary/20 transition-all outline-none"
+                        />
+                      </div>
+                      
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] uppercase font-bold tracking-widest text-foreground/40 px-1">Market Price (USD)</label>
+                        <div className="relative">
+                          <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-foreground/40">$</span>
+                          <input 
+                            type="number" 
+                            value={scannedCard.price}
+                            onChange={(e) => setScannedCard({...scannedCard, price: Number(e.target.value)})}
+                            className="w-full bg-foreground/5 border-none rounded-xl pl-8 pr-4 py-3 font-bold text-foreground focus:ring-2 ring-primary/20 transition-all outline-none"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <button 
+                      onClick={confirmAddCard}
+                      className="w-full bg-foreground text-background py-4 rounded-full font-bold text-base md:text-lg hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-foreground/10 flex items-center justify-center gap-2"
+                    >
+                      <Scan size={20} />
+                      <span>Add to Collection</span>
+                    </button>
+                    
+                    <button 
+                      onClick={() => { setScanStatus("idle"); setScannedCard(null); }}
+                      className="text-xs font-bold text-foreground/40 hover:text-foreground transition-colors uppercase tracking-widest"
+                    >
+                      Discard & Retake
+                    </button>
                   </div>
                 )}
 
