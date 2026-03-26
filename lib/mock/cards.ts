@@ -5,6 +5,11 @@ export interface Card {
   image: string;
   rank?: number;
   category: string;
+  player?: string;
+  set?: string;
+  rarity?: string;
+  change?: string;
+  isTrending?: boolean;
 }
 
 export const TRENDING_CARDS: Card[] = Array.from({ length: 10 }).map((_, i) => ({

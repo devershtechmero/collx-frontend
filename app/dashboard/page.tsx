@@ -1,19 +1,25 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Scan, ChevronLeft, ChevronRight, TrendingUp, DollarSign } from "lucide-react";
-import { TRENDING_CARDS } from "@/lib/mock/cards";
+import { TRENDING_CARDS, type Card } from "@/lib/mock/cards";
 import { CardItem } from "@/components/shared/cards/card-item";
+import { addCapturedCard } from "@/lib/store/collection-store";
+import { X, Camera, CheckCircle2, Loader2, ChevronLeft, ChevronRight, TrendingUp, Scan } from "lucide-react";
 
 export default function DashboardHome() {
   const [isScanning, setIsScanning] = useState(false);
+  const [scanStatus, setScanStatus] = useState<"idle" | "capturing" | "identifying" | "success">("idle");
   const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const startScan = async () => {
     try {
+      setScanStatus("idle");
       setIsScanning(true);
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } } 
+      });
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
       }
@@ -31,6 +37,46 @@ export default function DashboardHome() {
       videoRef.current.srcObject = null;
     }
     setIsScanning(false);
+    setScanStatus("idle");
+  };
+
+  const captureCard = () => {
+    if (!videoRef.current || !canvasRef.current) return;
+
+    setScanStatus("capturing");
+    
+    // Take snapshot
+    const canvas = canvasRef.current;
+    const video = videoRef.current;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext("2d");
+    if (ctx) {
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const imageData = canvas.toDataURL("image/jpeg");
+
+      // Simulate identification process
+      setScanStatus("identifying");
+      setTimeout(() => {
+        const newCard: Card = {
+          id: `scanned-${Date.now()}`,
+          name: "Recently Scanned Card",
+          player: "Identified Player",
+          set: "CollX Scanner 2026",
+          rarity: "Super Rare",
+          category: "Pokemon",
+          price: Math.floor(Math.random() * 500) + 50,
+          image: imageData,
+          change: "+15.2%",
+          isTrending: true
+        };
+        addCapturedCard(newCard);
+        setScanStatus("success");
+        
+        // Auto close after success
+        setTimeout(() => stopScan(), 2000);
+      }, 1500);
+    }
   };
 
   const scroll = (direction: "left" | "right") => {
@@ -43,36 +89,23 @@ export default function DashboardHome() {
 
   return (
     <div className="space-y-8 md:space-y-12">
-      {/* Scanner Section */}
+      {/* Scanner Hero */}
       <section className="relative overflow-hidden rounded-[2rem] md:rounded-[2.5rem] bg-current/5 text-foreground p-6 md:p-12 lg:p-16 border border-current/10">
         <div className="relative z-10 max-w-2xl">
           <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight mb-4 md:mb-6">Scan Your Cards</h2>
           <p className="text-foreground/70 text-base md:text-lg mb-8 md:mb-10 leading-relaxed max-w-md">
             Instantly identify your cards and get real-time market values. 
-            Works with Pokemon, Sports cards, and more.
+            Now with full-resolution capture and collection sync.
           </p>
           
           <button
-            onClick={isScanning ? stopScan : startScan}
-            className="group relative w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-foreground text-background px-8 py-4 rounded-full font-bold text-base md:text-lg transition-all hover:scale-105 active:scale-95"
+            onClick={startScan}
+            className="group relative w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-foreground text-background px-8 py-4 rounded-full font-bold text-base md:text-lg transition-all hover:scale-105 active:scale-95 shadow-xl shadow-foreground/10"
           >
-            <Scan className={`${isScanning ? "animate-spin" : ""}`} />
-            <span>{isScanning ? "Stop Scanner" : "Start Scanning"}</span>
+            <Camera size={24} />
+            <span>Start Scanning</span>
           </button>
         </div>
-
-        {/* Camera Preview Overlay */}
-        {isScanning && (
-          <div className="absolute inset-0 z-0">
-            <video 
-              ref={videoRef} 
-              autoPlay 
-              playsInline 
-              className="h-full w-full object-cover opacity-40"
-            />
-            <div className="absolute inset-0 bg-gradient-to-r from-background via-background/60 to-transparent" />
-          </div>
-        )}
 
         {/* Decorative Grid */}
         <div className="absolute top-0 right-0 w-1/2 md:w-1/3 h-full opacity-5 md:opacity-10 pointer-events-none">
@@ -83,6 +116,71 @@ export default function DashboardHome() {
           </div>
         </div>
       </section>
+
+      {/* Full-Screen Scanner Overlay */}
+      {isScanning && (
+        <div className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center animate-in fade-in duration-500">
+          <button 
+            onClick={stopScan}
+            className="absolute top-8 right-8 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white backdrop-blur-md transition-all z-10"
+          >
+            <X size={24} />
+          </button>
+
+          <div className="relative w-full h-full flex items-center justify-center">
+            <video 
+              ref={videoRef} 
+              autoPlay 
+              playsInline 
+              className="h-full w-full object-cover"
+            />
+            
+            {/* Scanner UI Overlays */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              {/* Aiming Box */}
+              <div className="relative w-72 h-[440px] md:w-80 md:h-[480px] border-2 border-white/50 rounded-3xl shadow-[0_0_0_100vw_rgba(0,0,0,0.6)]">
+                <div className="absolute inset-0 border-2 border-primary/40 rounded-3xl animate-pulse" />
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-full pb-4">
+                  <p className="text-white font-bold text-sm tracking-widest uppercase bg-black/40 px-4 py-1 rounded-full backdrop-blur-md">
+                    Position card within frame
+                  </p>
+                </div>
+              </div>
+
+              {/* Action UI */}
+              <div className="absolute bottom-12 w-full flex flex-col items-center gap-6">
+                {scanStatus === "idle" && (
+                  <button 
+                    onClick={captureCard}
+                    className="w-20 h-20 bg-white rounded-full border-4 border-white/20 flex items-center justify-center shadow-2xl active:scale-90 transition-all group"
+                  >
+                    <div className="w-16 h-16 rounded-full border-2 border-black group-hover:scale-95 transition-all" />
+                  </button>
+                )}
+
+                {scanStatus === "identifying" && (
+                  <div className="flex flex-col items-center gap-4 bg-black/60 p-6 rounded-3xl backdrop-blur-md border border-white/10">
+                    <Loader2 className="animate-spin text-primary" size={40} />
+                    <p className="text-white font-bold tracking-tight">Identifying Card...</p>
+                  </div>
+                )}
+
+                {scanStatus === "success" && (
+                  <div className="flex flex-col items-center gap-4 bg-green-500/90 p-8 rounded-3xl backdrop-blur-md animate-in zoom-in-95 duration-300">
+                    <CheckCircle2 className="text-white" size={48} />
+                    <div className="text-center">
+                      <p className="text-white font-bold text-xl">Card Captured!</p>
+                      <p className="text-white/80 text-sm">Added to your collection</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+          
+          <canvas ref={canvasRef} className="hidden" />
+        </div>
+      )}
 
       {/* Trending Cards Section */}
       <section className="space-y-6">

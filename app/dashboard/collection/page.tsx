@@ -1,14 +1,22 @@
 "use client";
 
 import { useState } from "react";
-import { MY_COLLECTION } from "@/lib/mock/cards";
+import { MY_COLLECTION, type Card } from "@/lib/mock/cards";
 import { Heart, Bookmark, Grid, DollarSign, Wallet, Search } from "lucide-react";
 import { CardItem } from "@/components/shared/cards/card-item";
+import { getCapturedCards } from "@/lib/store/collection-store";
+import { useEffect } from "react";
 
 type Tab = "my-collection" | "saved" | "liked";
 
 export default function CollectionPage() {
   const [activeTab, setActiveTab] = useState<Tab>("my-collection");
+  const [collection, setCollection] = useState<Card[]>([]);
+
+  useEffect(() => {
+    const captured = getCapturedCards();
+    setCollection([...captured, ...MY_COLLECTION]);
+  }, []);
 
   const TABS = [
     { id: "my-collection", label: "My Collection", icon: Grid },
@@ -16,7 +24,7 @@ export default function CollectionPage() {
     { id: "liked", label: "Liked", icon: Heart }
   ];
 
-  const totalValue = MY_COLLECTION.reduce((acc, card) => acc + card.price, 0);
+  const totalValue = collection.reduce((acc, card) => acc + card.price, 0);
 
   return (
     <div className="h-full flex flex-col gap-8">
@@ -48,7 +56,7 @@ export default function CollectionPage() {
       <div className="flex-1 overflow-y-auto no-scrollbar pb-32">
         {activeTab === "my-collection" ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {MY_COLLECTION.map((card) => (
+            {collection.map((card) => (
               <CardItem key={card.id} card={card} />
             ))}
           </div>
@@ -69,7 +77,7 @@ export default function CollectionPage() {
             <div className="space-y-0.5">
               <p className="text-[10px] uppercase font-bold tracking-widest text-foreground/40">Total Cards</p>
               <div className="flex items-baseline gap-1">
-                <span className="text-2xl font-bold">{MY_COLLECTION.length}</span>
+                <span className="text-2xl font-bold">{collection.length}</span>
                 <span className="text-[10px] font-bold opacity-30">PCS</span>
               </div>
             </div>
