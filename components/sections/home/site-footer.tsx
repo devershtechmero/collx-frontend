@@ -57,9 +57,9 @@ export function SiteFooter() {
         </div>
 
         <div className="flex flex-col items-center justify-between gap-4 border-t border-current/10 pt-8 text-xs text-foreground/50 sm:flex-row">
-          <p>© {new Date().getFullYear()} CollX. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} Coll X. All rights reserved.</p>
           <div className="flex gap-6">
-            <p className="flex items-center gap-2">Built for collectors by collectors <span className="flex w-2 h-2 rounded-full bg-green-500 animate-ping"></span></p>
+            <p className="flex items-center gap-2">Built for collectors by collectors</p>
           </div>
         </div>
       </div>
