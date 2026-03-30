@@ -2,6 +2,7 @@
 
 import { Heart, Bookmark, CheckCircle2 } from "lucide-react";
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { type Card } from "@/lib/mock/cards";
 import {
   COLLECTION_STORAGE_EVENT,
@@ -52,10 +53,11 @@ export function CardItem({
 
   return (
     <div className="group relative">
-      <div className="relative aspect-[3/4] rounded-2xl md:rounded-[2rem] overflow-hidden mb-3 md:mb-4 bg-foreground/5 border border-current/5">
-        <img 
+      <div className="relative aspect-3/4 rounded-2xl md:rounded-4xl overflow-hidden mb-3 md:mb-4 bg-foreground/5 border border-current/5">
+        <Image 
           src={card.image} 
           alt={card.name}
+          fill
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
         />
         
@@ -68,7 +70,7 @@ export function CardItem({
                 isLiked ? "bg-pink-500 text-white" : "bg-background/80 text-foreground"
               }`}
             >
-              <Heart size={16} className="md:w-[18px] md:h-[18px]" fill={isLiked ? "currentColor" : "none"} />
+              <Heart size={16} className="md:w-4.5 md:h-4.5" fill={isLiked ? "currentColor" : "none"} />
             </button>
             <button 
               onClick={() => setIsSaved(toggleSavedCard(card))}
@@ -76,7 +78,7 @@ export function CardItem({
                 isSaved ? "bg-blue-500 text-white" : "bg-background/80 text-foreground"
               }`}
             >
-              <Bookmark size={16} className="md:w-[18px] md:h-[18px]" fill={isSaved ? "currentColor" : "none"} />
+              <Bookmark size={16} className="md:w-4.5 md:h-4.5" fill={isSaved ? "currentColor" : "none"} />
             </button>
           </div>
         )}

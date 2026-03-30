@@ -1,21 +1,60 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { Search, Filter, ArrowRight } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Search, Filter, ArrowUpDown, ChevronDown, ChevronUp } from "lucide-react";
 import { CATEGORIES, TRENDING_CARDS } from "@/lib/mock/cards";
 import { CardItem } from "@/components/shared/cards/card-item";
+import { COLLECTION_STORAGE_EVENT, getForSaleCards } from "@/lib/store/collection-store";
+
+type SortOption = "price-asc" | "price-desc" | "date-asc" | "date-desc";
 
 export default function BrowsePage() {
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
+  const [sortBy, setSortBy] = useState<SortOption>("date-desc");
+  const [forSaleCards, setForSaleCards] = useState(TRENDING_CARDS);
+  const [ownCardIds, setOwnCardIds] = useState<string[]>([]);
+  const [showFilters, setShowFilters] = useState(false);
+
+  useEffect(() => {
+    const syncCards = () => {
+      const listedCards = getForSaleCards();
+      const listedIds = new Set(listedCards.map((card) => card.id));
+      setForSaleCards([...listedCards, ...TRENDING_CARDS.filter((card) => !listedIds.has(card.id))]);
+      setOwnCardIds(listedCards.map((card) => card.id));
+    };
+
+    syncCards();
+    window.addEventListener(COLLECTION_STORAGE_EVENT, syncCards);
+    return () => window.removeEventListener(COLLECTION_STORAGE_EVENT, syncCards);
+  }, []);
 
   const filteredCards = useMemo(() => {
-    return TRENDING_CARDS.filter(card => {
-      const matchesSearch = card.name.toLowerCase().includes(search.toLowerCase());
+    return [...forSaleCards]
+      .filter((card) => {
+        const query = search.toLowerCase();
+        const matchesSearch =
+          card.name.toLowerCase().includes(query) ||
+          card.category.toLowerCase().includes(query);
       const matchesCategory = activeCategory === "All" || card.category === activeCategory;
       return matchesSearch && matchesCategory;
-    });
-  }, [search, activeCategory]);
+      })
+      .sort((a, b) => {
+        if (sortBy === "price-asc") return a.price - b.price;
+        if (sortBy === "price-desc") return b.price - a.price;
+
+        const aDate = new Date(a.dateAdded ?? 0).getTime();
+        const bDate = new Date(b.dateAdded ?? 0).getTime();
+        return sortBy === "date-asc" ? aDate - bDate : bDate - aDate;
+      });
+  }, [activeCategory, forSaleCards, search, sortBy]);
+
+  const SORT_OPTIONS: { id: SortOption; label: string }[] = [
+    { id: "price-asc", label: "Price A-Z" },
+    { id: "price-desc", label: "Price Z-A" },
+    { id: "date-asc", label: "Date Added A-Z" },
+    { id: "date-desc", label: "Date Added Z-A" },
+  ];
 
   return (
     <div className="space-y-10">
@@ -36,27 +75,62 @@ export default function BrowsePage() {
         />
       </div>
 
-      {/* Categories */}
-      <div className="flex gap-3 overflow-x-auto no-scrollbar py-2">
-        {["All", ...CATEGORIES].map((cat) => (
-          <button
-            key={cat}
-            onClick={() => setActiveCategory(cat)}
-            className={`flex-none px-6 py-3 rounded-full text-sm font-bold transition-all border ${
-              activeCategory === cat 
-              ? "bg-foreground text-background border-foreground" 
-              : "border-current/10 hover:border-current/30"
-            }`}
-          >
-            {cat}
-          </button>
-        ))}
+      <div className="space-y-4">
+        <button
+          onClick={() => setShowFilters((current) => !current)}
+          className="inline-flex items-center gap-3 rounded-full border border-current/10 px-5 py-3 text-sm font-bold transition-all hover:bg-current/5"
+        >
+          <ArrowUpDown size={16} />
+          <span>Sort & Filter</span>
+          {showFilters ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+        </button>
+
+        {showFilters && (
+          <div className="space-y-4 rounded-[2rem] border border-current/10 bg-current/5 p-4 md:p-5">
+            <div className="flex gap-3 overflow-x-auto no-scrollbar py-1">
+              {["All", ...CATEGORIES].map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setActiveCategory(cat)}
+                  className={`flex-none px-6 py-3 rounded-full text-sm font-bold transition-all border ${
+                    activeCategory === cat
+                      ? "bg-foreground text-background border-foreground"
+                      : "border-current/10 hover:border-current/30"
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex gap-3 overflow-x-auto no-scrollbar py-1">
+              {SORT_OPTIONS.map((option) => (
+                <button
+                  key={option.id}
+                  onClick={() => setSortBy(option.id)}
+                  className={`flex-none px-6 py-3 rounded-full text-sm font-bold transition-all border ${
+                    sortBy === option.id
+                      ? "bg-foreground text-background border-foreground"
+                      : "border-current/10 hover:border-current/30"
+                  }`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Results */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
         {filteredCards.map((card) => (
-          <CardItem key={card.id} card={card} />
+          <CardItem
+            key={card.id}
+            card={card}
+            interactionMode={ownCardIds.includes(card.id) ? "collection" : "marketplace"}
+            showForSaleTag={ownCardIds.includes(card.id)}
+          />
         ))}
       </div>
 
@@ -67,7 +141,7 @@ export default function BrowsePage() {
           </div>
           <p className="text-2xl font-bold text-foreground/20">No matching cards found</p>
           <button 
-            onClick={() => {setSearch(""); setActiveCategory("All");}}
+            onClick={() => {setSearch(""); setActiveCategory("All"); setSortBy("date-desc");}}
             className="text-sm font-bold underline underline-offset-4"
           >
             Clear all filters

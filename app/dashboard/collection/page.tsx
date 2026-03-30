@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { MY_COLLECTION, type Card } from "@/lib/mock/cards";
+import { type Card } from "@/lib/mock/cards";
 import { Heart, Bookmark, Grid, Search } from "lucide-react";
 import { CardItem } from "@/components/shared/cards/card-item";
 import {
@@ -22,8 +22,7 @@ export default function CollectionPage() {
 
   useEffect(() => {
     const syncCollection = () => {
-      const captured = getCapturedCards();
-      setCollection([...captured, ...MY_COLLECTION]);
+      setCollection(getCapturedCards());
       setSavedCards(getSavedCards());
       setLikedCards(getLikedCards());
     };

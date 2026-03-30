@@ -1,15 +1,20 @@
-import { type Card } from "@/lib/mock/cards";
+import { MY_COLLECTION, type Card } from "@/lib/mock/cards";
 
-const STORAGE_KEY = "collx_captured_cards";
+const STORAGE_KEY = "collx_user_collection";
 const SAVED_STORAGE_KEY = "collx_saved_cards";
 const LIKED_STORAGE_KEY = "collx_liked_cards";
 const FOR_SALE_STORAGE_KEY = "collx_for_sale_cards";
 export const COLLECTION_STORAGE_EVENT = "collx-storage-updated";
 
+const normalizeCard = (card: Card): Card => ({
+  ...card,
+  dateAdded: card.dateAdded ?? new Date().toISOString(),
+});
+
 const readCards = (key: string): Card[] => {
   if (typeof window === "undefined") return [];
   const stored = localStorage.getItem(key);
-  return stored ? JSON.parse(stored) : [];
+  return stored ? JSON.parse(stored).map((card: Card) => normalizeCard(card)) : [];
 };
 
 const writeCards = (key: string, cards: Card[]) => {
@@ -30,19 +35,70 @@ const writeIds = (key: string, ids: string[]) => {
   window.dispatchEvent(new Event(COLLECTION_STORAGE_EVENT));
 };
 
+const ensureUserCollection = () => {
+  if (typeof window === "undefined") return;
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (!stored) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(MY_COLLECTION.map(normalizeCard)));
+  }
+};
+
 export const getCapturedCards = (): Card[] => {
+  ensureUserCollection();
   return readCards(STORAGE_KEY);
 };
 
 export const addCapturedCard = (card: Card) => {
   const current = getCapturedCards();
-  writeCards(STORAGE_KEY, [card, ...current]);
+  writeCards(STORAGE_KEY, [normalizeCard(card), ...current]);
 };
 
 export const clearCapturedCards = () => {
   if (typeof window === "undefined") return;
   localStorage.removeItem(STORAGE_KEY);
   window.dispatchEvent(new Event(COLLECTION_STORAGE_EVENT));
+};
+
+export const clearAllCollectionData = () => {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(STORAGE_KEY);
+  localStorage.removeItem(SAVED_STORAGE_KEY);
+  localStorage.removeItem(LIKED_STORAGE_KEY);
+  localStorage.removeItem(FOR_SALE_STORAGE_KEY);
+  window.dispatchEvent(new Event(COLLECTION_STORAGE_EVENT));
+};
+
+export const updateCollectionCard = (cardId: string, updates: Partial<Card>) => {
+  const current = getCapturedCards();
+  writeCards(
+    STORAGE_KEY,
+    current.map((card) =>
+      card.id === cardId ? normalizeCard({ ...card, ...updates, id: card.id }) : card
+    )
+  );
+};
+
+export const deleteCollectionCard = (cardId: string) => {
+  const current = getCapturedCards();
+  writeCards(
+    STORAGE_KEY,
+    current.filter((card) => card.id !== cardId)
+  );
+
+  writeIds(
+    FOR_SALE_STORAGE_KEY,
+    getCardsForSale().filter((id) => id !== cardId)
+  );
+
+  writeCards(
+    SAVED_STORAGE_KEY,
+    getSavedCards().filter((card) => card.id !== cardId)
+  );
+
+  writeCards(
+    LIKED_STORAGE_KEY,
+    getLikedCards().filter((card) => card.id !== cardId)
+  );
 };
 
 const toggleCardInList = (key: string, card: Card) => {
@@ -78,6 +134,11 @@ export const toggleLikedCard = (card: Card) => toggleCardInList(LIKED_STORAGE_KE
 export const getCardsForSale = (): string[] => readIds(FOR_SALE_STORAGE_KEY);
 
 export const isCardForSale = (cardId: string) => getCardsForSale().includes(cardId);
+
+export const getForSaleCards = (): Card[] => {
+  const ids = new Set(getCardsForSale());
+  return getCapturedCards().filter((card) => ids.has(card.id));
+};
 
 export const toggleCardForSale = (cardId: string) => {
   const current = getCardsForSale();
