@@ -1,21 +1,37 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { MY_COLLECTION, type Card } from "@/lib/mock/cards";
-import { Heart, Bookmark, Grid, DollarSign, Wallet, Search } from "lucide-react";
+import { Heart, Bookmark, Grid, Search } from "lucide-react";
 import { CardItem } from "@/components/shared/cards/card-item";
-import { getCapturedCards } from "@/lib/store/collection-store";
-import { useEffect } from "react";
+import {
+  COLLECTION_STORAGE_EVENT,
+  getCapturedCards,
+  getLikedCards,
+  getSavedCards,
+  toggleCardForSale,
+} from "@/lib/store/collection-store";
 
 type Tab = "my-collection" | "saved" | "liked";
 
 export default function CollectionPage() {
   const [activeTab, setActiveTab] = useState<Tab>("my-collection");
   const [collection, setCollection] = useState<Card[]>([]);
+  const [savedCards, setSavedCards] = useState<Card[]>([]);
+  const [likedCards, setLikedCards] = useState<Card[]>([]);
 
   useEffect(() => {
-    const captured = getCapturedCards();
-    setCollection([...captured, ...MY_COLLECTION]);
+    const syncCollection = () => {
+      const captured = getCapturedCards();
+      setCollection([...captured, ...MY_COLLECTION]);
+      setSavedCards(getSavedCards());
+      setLikedCards(getLikedCards());
+    };
+
+    syncCollection();
+    window.addEventListener(COLLECTION_STORAGE_EVENT, syncCollection);
+
+    return () => window.removeEventListener(COLLECTION_STORAGE_EVENT, syncCollection);
   }, []);
 
   const TABS = [
@@ -25,11 +41,19 @@ export default function CollectionPage() {
   ];
 
   const totalValue = collection.reduce((acc, card) => acc + card.price, 0);
+  const tabCards = activeTab === "saved" ? savedCards : likedCards;
 
   return (
     <div className="h-full flex flex-col gap-8">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl md:text-3xl font-bold">Your Collection</h2>
+        <div>
+          <h2 className="text-2xl md:text-3xl font-bold">Your Collection</h2>
+          {activeTab === "my-collection" && (
+            <p className="mt-1 text-sm text-foreground/50">
+              Total value: ${totalValue.toLocaleString()}
+            </p>
+          )}
+        </div>
       </div>
 
       {/* Sub-navigation */}
@@ -57,6 +81,21 @@ export default function CollectionPage() {
         {activeTab === "my-collection" ? (
           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
             {collection.map((card) => (
+              <CardItem
+                key={card.id}
+                card={card}
+                interactionMode="collection"
+                actionLabel="Sell Your Card"
+                onAction={(selectedCard) => {
+                  toggleCardForSale(selectedCard.id);
+                }}
+                showForSaleTag
+              />
+            ))}
+          </div>
+        ) : tabCards.length > 0 ? (
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+            {tabCards.map((card) => (
               <CardItem key={card.id} card={card} />
             ))}
           </div>
