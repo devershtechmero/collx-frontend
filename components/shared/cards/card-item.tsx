@@ -62,7 +62,18 @@ export function CardItem({
   };
 
   return (
-    <div className="group relative">
+    <div
+      className="group relative cursor-pointer"
+      onClick={handlePrimaryAction}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          handlePrimaryAction();
+        }
+      }}
+    >
       <div className="relative aspect-3/4 rounded-2xl md:rounded-4xl overflow-hidden mb-3 md:mb-4 bg-foreground/5 border border-current/5">
         <Image 
           src={card.image} 
@@ -75,7 +86,10 @@ export function CardItem({
         {showInteractions && (
           <div className="absolute top-2 md:top-4 right-2 md:right-4 flex flex-col gap-1.5 md:gap-2 opacity-0 group-hover:opacity-100 transition-all">
             <button 
-              onClick={() => setIsLiked(toggleLikedCard(card))}
+              onClick={(event) => {
+                event.stopPropagation();
+                setIsLiked(toggleLikedCard(card));
+              }}
               className={`p-2 md:p-3 rounded-full backdrop-blur-md shadow-lg transition-all hover:scale-110 ${
                 isLiked ? "bg-pink-500 text-white" : "bg-background/80 text-foreground"
               }`}
@@ -83,7 +97,10 @@ export function CardItem({
               <Heart size={16} className="md:w-4.5 md:h-4.5" fill={isLiked ? "currentColor" : "none"} />
             </button>
             <button 
-              onClick={() => setIsSaved(toggleSavedCard(card))}
+              onClick={(event) => {
+                event.stopPropagation();
+                setIsSaved(toggleSavedCard(card));
+              }}
               className={`p-2 md:p-3 rounded-full backdrop-blur-md shadow-lg transition-all hover:scale-110 ${
                 isSaved ? "bg-blue-500 text-white" : "bg-background/80 text-foreground"
               }`}
@@ -109,7 +126,10 @@ export function CardItem({
         {showDetails && (
           <div className="absolute bottom-3 md:bottom-4 right-3 md:right-4 translate-y-12 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all hidden md:block">
             <button
-              onClick={handlePrimaryAction}
+              onClick={(event) => {
+                event.stopPropagation();
+                handlePrimaryAction();
+              }}
               className="bg-background text-foreground px-4 py-2 rounded-full text-xs font-medium shadow-xl"
             >
               {actionLabel}
