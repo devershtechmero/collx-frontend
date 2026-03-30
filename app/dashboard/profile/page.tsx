@@ -216,18 +216,18 @@ function EditCardModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="w-full max-w-2xl bg-background border border-current/10 rounded-[2.5rem] p-8 shadow-2xl space-y-6">
-        <div className="flex items-center justify-between">
-          <h3 className="text-2xl font-bold">Edit Card</h3>
-          <button onClick={onClose} className="p-2 hover:bg-current/5 rounded-full transition-colors">
+    <div className="fixed inset-0 z-50 flex items-end justify-center p-3 sm:p-6 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200 sm:items-center">
+      <div className="w-full max-w-2xl max-h-[92vh] overflow-y-auto bg-background border border-current/10 rounded-[2rem] sm:rounded-[2.5rem] p-4 sm:p-8 shadow-2xl space-y-5 sm:space-y-6">
+        <div className="flex items-center justify-between gap-4">
+          <h3 className="text-xl sm:text-2xl font-bold">Edit Card</h3>
+          <button onClick={onClose} className="p-2 hover:bg-current/5 rounded-full transition-colors shrink-0">
             <X size={20} />
           </button>
         </div>
 
-        <form onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-6">
-          <div className="space-y-4">
-            <div className="relative aspect-3/4 rounded-4xl overflow-hidden border border-current/10 bg-current/5">
+        <form onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-5 sm:gap-6">
+          <div className="space-y-3 sm:space-y-4">
+            <div className="relative mx-auto w-full max-w-[220px] aspect-[4/5] sm:max-w-none sm:aspect-3/4 rounded-[1.5rem] sm:rounded-4xl overflow-hidden border border-current/10 bg-current/5">
               <Image src={form.image} alt={form.name} fill className="object-cover" />
             </div>
             <button
@@ -254,7 +254,7 @@ function EditCardModal({
                 required
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-                className="w-full bg-current/5 border border-transparent rounded-2xl px-5 py-4 outline-none focus:bg-background focus:border-current/10 transition-all font-medium"
+                className="w-full bg-current/5 border border-transparent rounded-2xl px-4 sm:px-5 py-3.5 sm:py-4 outline-none focus:bg-background focus:border-current/10 transition-all font-medium"
               />
             </div>
             <div className="space-y-2">
@@ -265,7 +265,7 @@ function EditCardModal({
                 type="number"
                 value={form.price}
                 onChange={(e) => setForm({ ...form, price: Number(e.target.value) })}
-                className="w-full bg-current/5 border border-transparent rounded-2xl px-5 py-4 outline-none focus:bg-background focus:border-current/10 transition-all font-medium"
+                className="w-full bg-current/5 border border-transparent rounded-2xl px-4 sm:px-5 py-3.5 sm:py-4 outline-none focus:bg-background focus:border-current/10 transition-all font-medium"
               />
             </div>
             <div className="space-y-2">
@@ -273,7 +273,7 @@ function EditCardModal({
               <select
                 value={form.category}
                 onChange={(e) => setForm({ ...form, category: e.target.value })}
-                className="w-full bg-current/5 border border-transparent rounded-2xl px-5 py-4 outline-none focus:bg-background focus:border-current/10 transition-all font-medium"
+                className="w-full bg-current/5 border border-transparent rounded-2xl px-4 sm:px-5 py-3.5 sm:py-4 outline-none focus:bg-background focus:border-current/10 transition-all font-medium"
               >
                 {CATEGORIES.map((category) => (
                   <option key={category} value={category}>
@@ -282,12 +282,12 @@ function EditCardModal({
                 ))}
               </select>
             </div>
-            <div className="flex gap-3 pt-2">
-              <button type="submit" className="flex-1 bg-foreground text-background py-4 rounded-full font-bold hover:scale-[1.02] active:scale-[0.98] transition-all">
-                Save Changes
-              </button>
-              <button type="button" onClick={onClose} className="px-6 py-4 rounded-full border border-current/10 font-bold hover:bg-current/5 transition-all">
+            <div className="flex flex-col-reverse sm:flex-row gap-3 pt-2">
+              <button type="button" onClick={onClose} className="w-full sm:w-auto px-6 py-3.5 sm:py-4 rounded-full border border-current/10 font-bold hover:bg-current/5 transition-all">
                 Cancel
+              </button>
+              <button type="submit" className="flex-1 bg-foreground text-background py-3.5 sm:py-4 rounded-full font-bold hover:scale-[1.02] active:scale-[0.98] transition-all">
+                Save Changes
               </button>
             </div>
           </div>
