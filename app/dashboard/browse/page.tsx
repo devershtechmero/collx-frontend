@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Search, Filter, ArrowUpDown, ChevronDown, ChevronUp } from "lucide-react";
 import { CATEGORIES, TRENDING_CARDS } from "@/lib/mock/cards";
 import { CardItem } from "@/components/shared/cards/card-item";
-import { COLLECTION_STORAGE_EVENT, getForSaleCards } from "@/lib/store/collection-store";
 
 type SortOption = "price-asc" | "price-desc" | "date-asc" | "date-desc";
 
@@ -12,25 +11,10 @@ export default function BrowsePage() {
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
   const [sortBy, setSortBy] = useState<SortOption>("date-desc");
-  const [forSaleCards, setForSaleCards] = useState(TRENDING_CARDS);
-  const [ownCardIds, setOwnCardIds] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
 
-  useEffect(() => {
-    const syncCards = () => {
-      const listedCards = getForSaleCards();
-      const listedIds = new Set(listedCards.map((card) => card.id));
-      setForSaleCards([...listedCards, ...TRENDING_CARDS.filter((card) => !listedIds.has(card.id))]);
-      setOwnCardIds(listedCards.map((card) => card.id));
-    };
-
-    syncCards();
-    window.addEventListener(COLLECTION_STORAGE_EVENT, syncCards);
-    return () => window.removeEventListener(COLLECTION_STORAGE_EVENT, syncCards);
-  }, []);
-
   const filteredCards = useMemo(() => {
-    return [...forSaleCards]
+    return [...TRENDING_CARDS]
       .filter((card) => {
         const query = search.toLowerCase();
         const matchesSearch =
@@ -47,7 +31,7 @@ export default function BrowsePage() {
         const bDate = new Date(b.dateAdded ?? 0).getTime();
         return sortBy === "date-asc" ? aDate - bDate : bDate - aDate;
       });
-  }, [activeCategory, forSaleCards, search, sortBy]);
+  }, [activeCategory, search, sortBy]);
 
   const SORT_OPTIONS: { id: SortOption; label: string }[] = [
     { id: "price-asc", label: "Price A-Z" },
@@ -125,12 +109,7 @@ export default function BrowsePage() {
       {/* Results */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
         {filteredCards.map((card) => (
-          <CardItem
-            key={card.id}
-            card={card}
-            interactionMode={ownCardIds.includes(card.id) ? "collection" : "marketplace"}
-            showForSaleTag={ownCardIds.includes(card.id)}
-          />
+          <CardItem key={card.id} card={card} />
         ))}
       </div>
 

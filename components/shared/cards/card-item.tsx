@@ -3,6 +3,7 @@
 import { Heart, Bookmark, CheckCircle2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { type Card } from "@/lib/mock/cards";
 import {
   COLLECTION_STORAGE_EVENT,
@@ -35,6 +36,7 @@ export function CardItem({
   const [isLiked, setIsLiked] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [isListedForSale, setIsListedForSale] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     const syncState = () => {
@@ -50,6 +52,14 @@ export function CardItem({
   }, [card.id]);
 
   const showInteractions = interactionMode === "marketplace";
+  const handlePrimaryAction = () => {
+    if (onAction) {
+      onAction(card);
+      return;
+    }
+
+    router.push(`/dashboard/cards/${card.id}`);
+  };
 
   return (
     <div className="group relative">
@@ -99,7 +109,7 @@ export function CardItem({
         {showDetails && (
           <div className="absolute bottom-3 md:bottom-4 right-3 md:right-4 translate-y-12 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all hidden md:block">
             <button
-              onClick={() => onAction?.(card)}
+              onClick={handlePrimaryAction}
               className="bg-background text-foreground px-4 py-2 rounded-full text-xs font-medium shadow-xl"
             >
               {actionLabel}
