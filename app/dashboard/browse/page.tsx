@@ -34,10 +34,10 @@ export default function BrowsePage() {
   }, [activeCategory, search, sortBy]);
 
   const SORT_OPTIONS: { id: SortOption; label: string }[] = [
-    { id: "price-asc", label: "Price A-Z" },
-    { id: "price-desc", label: "Price Z-A" },
-    { id: "date-asc", label: "Date Added A-Z" },
-    { id: "date-desc", label: "Date Added Z-A" },
+    { id: "price-asc", label: "Price : low-high" },
+    { id: "price-desc", label: "Price : high-low" },
+    { id: "date-asc", label: "Date : older-newer" },
+    { id: "date-desc", label: "Date : newer-older" },
   ];
 
   return (
@@ -55,7 +55,7 @@ export default function BrowsePage() {
           placeholder="Search cards, sets, or players..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full bg-current/5 border border-transparent rounded-[2rem] pl-14 pr-6 py-5 outline-none focus:bg-background focus:border-current/10 transition-all text-lg"
+          className="w-full bg-current/5 border border-transparent rounded-4xl pl-14 pr-6 py-5 outline-none focus:bg-background focus:border-current/10 transition-all text-lg"
         />
       </div>
 
@@ -70,7 +70,7 @@ export default function BrowsePage() {
         </button>
 
         {showFilters && (
-          <div className="space-y-4 rounded-[2rem] border border-current/10 bg-current/5 p-4 md:p-5">
+          <div className="space-y-4 rounded-4xl border border-current/10 bg-current/5 p-4 md:p-5">
             <div className="flex gap-3 overflow-x-auto no-scrollbar py-1">
               {["All", ...CATEGORIES].map((cat) => (
                 <button
