@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
+import Image from "next/image";
 import { TRENDING_CARDS, type Card } from "@/lib/mock/cards";
 import { CardItem } from "@/components/shared/cards/card-item";
 import { addCapturedCard } from "@/lib/store/collection-store";
@@ -103,7 +104,7 @@ export default function DashboardHome() {
   return (
     <div className="space-y-8 md:space-y-12">
       {/* Scanner Hero */}
-      <section className="relative overflow-hidden rounded-[2rem] md:rounded-[2.5rem] bg-current/5 text-foreground p-6 md:p-12 lg:p-16 border border-current/10">
+      <section className="relative overflow-hidden rounded-4xl md:rounded-2xl bg-current/5 text-foreground p-6 md:p-12 lg:p-8 lg:px-12 border border-current/10">
         <div className="relative z-10 max-w-2xl">
           <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight mb-4 md:mb-6">Scan Your Cards</h2>
           <p className="text-foreground/70 text-base md:text-lg mb-8 md:mb-10 leading-relaxed max-w-md">
@@ -113,7 +114,7 @@ export default function DashboardHome() {
           
           <button
             onClick={startScan}
-            className="group relative w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-foreground text-background px-8 py-4 rounded-full font-bold text-base md:text-lg transition-all hover:scale-105 active:scale-95 shadow-xl shadow-foreground/10"
+            className="group relative w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-foreground text-background px-6 py-3 rounded-full font-medium text-base md:text-[16px] transition-all hover:scale-101 shadow-xl shadow-foreground/10"
           >
             <Camera size={24} />
             <span>Start Scanning</span>
@@ -124,7 +125,7 @@ export default function DashboardHome() {
         <div className="absolute top-0 right-0 w-1/2 md:w-1/3 h-full opacity-5 md:opacity-10 pointer-events-none">
           <div className="grid grid-cols-3 md:grid-cols-4 gap-2">
             {Array.from({ length: 12 }).map((_, i) => (
-              <div key={i} className="aspect-[3/4] border border-current/20 rounded-lg" />
+              <div key={i} className="aspect-3/4 border border-current/20 rounded-lg" />
             ))}
           </div>
         </div>
@@ -132,10 +133,10 @@ export default function DashboardHome() {
 
       {/* Full-Screen Scanner Overlay */}
       {isScanning && (
-        <div className="fixed inset-0 z-[100] bg-black h-screen w-screen flex flex-col items-center justify-center animate-in fade-in duration-500 overflow-hidden">
+        <div className="fixed inset-0 z-100 bg-black h-screen w-screen flex flex-col items-center justify-center animate-in fade-in duration-500 overflow-hidden">
           <button 
             onClick={stopScan}
-            className="absolute top-8 right-8 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white backdrop-blur-md transition-all z-[110]"
+            className="absolute top-8 right-8 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white backdrop-blur-md transition-all z-50"
           >
             <X size={24} />
           </button>
@@ -152,7 +153,7 @@ export default function DashboardHome() {
             <div className="absolute inset-0 flex flex-col items-center justify-center">
               {/* Aiming Box */}
               {scanStatus === "idle" && (
-                <div className="relative w-72 h-[500px] md:w-80 md:h-[500px] border-2 border-white/50 rounded-3xl shadow-[0_0_0_100vw_rgba(0,0,0,0.6)]">
+                <div className="relative w-72 h-125 md:w-80 md:h-125 border-2 border-white/50 rounded-3xl shadow-[0_0_0_100vw_rgba(0,0,0,0.6)]">
                   <div className="absolute inset-0 border-2 border-primary/40 rounded-3xl animate-pulse" />
                   <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-full pb-4 text-center w-full">
                     <p className="text-white font-bold text-sm tracking-widest uppercase bg-black/40 px-4 py-1 rounded-full backdrop-blur-md inline-block">
@@ -181,11 +182,11 @@ export default function DashboardHome() {
                 )}
 
                 {scanStatus === "review" && scannedCard && (
-                  <div className="flex flex-col md:flex-row items-stretch gap-0 bg-background rounded-[2rem] md:rounded-[2.5rem] w-[95%] max-w-2xl animate-in zoom-in-95 duration-300 shadow-2xl border border-current/10 max-h-[90vh] overflow-hidden">
+                  <div className="flex flex-col md:flex-row items-stretch gap-0 bg-background rounded-4xl md:rounded-[2.5rem] w-[95%] max-w-2xl animate-in zoom-in-95 duration-300 shadow-2xl border border-current/10 max-h-[90vh] overflow-hidden">
                     {/* Left Side: Preview */}
                     <div className="w-full md:w-1/2 bg-foreground/5 p-6 flex items-center justify-center">
-                      <div className="relative w-full aspect-[3/4] rounded-2xl overflow-hidden shadow-2xl border border-current/5">
-                        <img src={scannedCard.image} className="w-full h-full object-cover" alt="Scanned Card" />
+                      <div className="relative w-full aspect-3/4 rounded-2xl overflow-hidden shadow-2xl border border-current/5">
+                        <Image src={scannedCard.image} fill className="object-cover" alt="Scanned Card" />
                       </div>
                     </div>
                     
@@ -284,7 +285,7 @@ export default function DashboardHome() {
           className="flex gap-6 overflow-x-auto pb-6 snap-x snap-mandatory no-scrollbar"
         >
           {TRENDING_CARDS.map((card, index) => (
-            <div key={card.id} className="flex-none w-[280px] snap-start">
+            <div key={card.id} className="flex-none w-70 snap-start">
               <CardItem card={card} rank={index + 1} />
             </div>
           ))}

@@ -12,8 +12,8 @@ export function HomePage() {
   return (
     <main className="min-h-screen">
       <SiteHeader />
-      <HeroSlider />
       <AuthCta />
+      <HeroSlider />
       <FeaturesSection />
       <MarketplaceSection />
       <CollectionSection />

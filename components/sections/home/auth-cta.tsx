@@ -159,17 +159,17 @@ export function AuthCta() {
 
   return (
     <>
-      <section className="mx-auto w-full max-w-7xl px-4 pb-10 sm:px-6 sm:pb-12 lg:px-12">
-        <div className="overflow-hidden rounded-4xl border border-current/15 bg-background px-6 py-8 text-foreground sm:px-8 sm:py-10 lg:px-10">
+      <section className="mx-auto w-full mt-2 max-w-full pb-10">
+        <div className="overflow-hidden rounded-xl border-current/15 bg-background px-6 py-4 text-foreground sm:px-8 lg:px-10">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-            <div className="max-w-2xl space-y-3">
-              <p className="text-sm font-medium text-foreground/70">
+            <div className="max-w-2xl space-y-2">
+              {/* <p className="text-sm font-medium text-foreground/70">
                 Join Coll X
-              </p>
-              <h2 className="text-2xl font-semibold tracking-[-0.04em] sm:text-3xl">
+              </p> */}
+              <h2 className="text-xl font-semibold tracking-[-0.04em] sm:text-2xl">
                 Register now and start building your community.
               </h2>
-              <p className="text-sm text-foreground/80 sm:text-base">
+              <p className="text-sm text-foreground/80 sm:text-xm">
                 Create your account in minutes, or log in to continue where you
                 left off.
               </p>
@@ -179,7 +179,7 @@ export function AuthCta() {
               <button
                 type="button"
                 onClick={openRegisterPopup}
-                className="inline-flex items-center justify-center rounded-full border border-current/30 px-6 py-3 text-sm font-semibold text-foreground transition-colors duration-200 hover:cursor-pointer hover:bg-foreground/8"
+                className="inline-flex items-center justify-center rounded-full border border-current px-6 py-3 text-sm font-semibold text-foreground transition-colors duration-200 hover:cursor-pointer hover:bg-foreground/8"
               >
                 Register Now
               </button>
@@ -187,7 +187,7 @@ export function AuthCta() {
               <button
                 type="button"
                 onClick={openLoginPopup}
-                className="inline-flex items-center justify-center rounded-full border border-current/30 px-6 py-3 text-sm font-semibold text-foreground transition-colors duration-200 hover:cursor-pointer hover:bg-foreground/8"
+                className="inline-flex items-center justify-center rounded-full border border-current px-6 py-3 text-sm font-semibold text-foreground transition-colors duration-200 hover:cursor-pointer hover:bg-foreground/8"
               >
                 Login
               </button>

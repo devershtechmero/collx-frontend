@@ -43,7 +43,7 @@ export default function ChatPage() {
   const activeMessages = selectedContact ? messages[selectedContact.id] || [] : [];
 
   return (
-    <div className="h-[calc(100vh-140px)] flex bg-current/5 border border-current/10 rounded-[2rem] md:rounded-[2.5rem] overflow-hidden relative">
+    <div className="h-[calc(100vh-140px)] flex bg-current/5 border border-current/10 rounded-4xl md:rounded-[2.5rem] overflow-hidden relative">
       {/* Contact List */}
       <aside className={`
         absolute inset-0 z-10 w-full md:relative md:w-90 border-r border-current/10 flex flex-col bg-background md:bg-background/20 backdrop-blur-sm transition-transform duration-300
@@ -114,7 +114,7 @@ export default function ChatPage() {
                   <p className="font-bold text-sm truncate">
                     {selectedContact.name} <span className="text-foreground/30 font-normal text-xs">#{selectedContact.username}</span>
                   </p>
-                  <p className="text-[10px] text-green-500 font-bold uppercase tracking-widest leading-none">
+                  <p className="text-[10px] text-green-500 font-medium tracking-widest leading-none">
                     {selectedContact.status}
                   </p>
                 </div>
@@ -134,7 +134,7 @@ export default function ChatPage() {
                 return (
                   <div key={msg.id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
                     <div className={`max-w-[70%] space-y-1 ${isMe ? "items-end" : "items-start"}`}>
-                      <div className={`px-4 py-3 rounded-[1.5rem] text-sm ${
+                      <div className={`px-4 py-3 rounded-3xl text-sm ${
                         isMe 
                           ? "bg-foreground text-background rounded-tr-none" 
                           : "bg-current/5 text-foreground rounded-tl-none border border-current/10"

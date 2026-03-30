@@ -64,7 +64,7 @@ export function ThemeToggle({ mobile = false }: ThemeToggleProps) {
       type="button"
       aria-label={themeLabel}
       onClick={handleToggle}
-      className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-current/20 transition-all duration-200 hover:bg-current/5 hover:border-current/40 hover:cursor-pointer"
+      className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-current transition-all duration-200 hover:bg-current/5 hover:border-current/40 hover:cursor-pointer"
     >
       {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
     </button>
