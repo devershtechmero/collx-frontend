@@ -104,12 +104,6 @@ function DeleteAccountModal({
 }) {
   const [confirmation, setConfirmation] = useState<"yes" | "no" | "">("");
 
-  useEffect(() => {
-    if (isOpen) {
-      setConfirmation("");
-    }
-  }, [isOpen]);
-
   if (!isOpen) return null;
 
   const handleChoiceChange = (value: "yes" | "no") => {
@@ -217,7 +211,7 @@ function EditCardModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center p-3 sm:p-6 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200 sm:items-center">
-      <div className="w-full max-w-2xl max-h-[92vh] overflow-y-auto bg-background border border-current/10 rounded-[2rem] sm:rounded-[2.5rem] p-4 sm:p-8 shadow-2xl space-y-5 sm:space-y-6">
+      <div className="w-full max-w-2xl max-h-[92vh] overflow-y-auto bg-background border border-current/10 rounded-4xl sm:rounded-[2.5rem] p-4 sm:p-8 shadow-2xl space-y-5 sm:space-y-6">
         <div className="flex items-center justify-between gap-4">
           <h3 className="text-xl sm:text-2xl font-bold">Edit Card</h3>
           <button onClick={onClose} className="p-2 hover:bg-current/5 rounded-full transition-colors shrink-0">
@@ -227,7 +221,7 @@ function EditCardModal({
 
         <form onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-5 sm:gap-6">
           <div className="space-y-3 sm:space-y-4">
-            <div className="relative mx-auto w-full max-w-[220px] aspect-[4/5] sm:max-w-none sm:aspect-3/4 rounded-[1.5rem] sm:rounded-4xl overflow-hidden border border-current/10 bg-current/5">
+            <div className="relative mx-auto w-full max-w-55 aspect-4/5 sm:max-w-none sm:aspect-3/4 rounded-3xl sm:rounded-4xl overflow-hidden border border-current/10 bg-current/5">
               <Image src={form.image} alt={form.name} fill className="object-cover" />
             </div>
             <button
@@ -309,7 +303,7 @@ export default function ProfilePage() {
   const [forSaleCards, setForSaleCards] = useState<Card[]>([]);
   const [editingCard, setEditingCard] = useState<Card | null>(null);
   const [isEditingName, setIsEditingName] = useState(false);
-  const [draftName, setDraftName] = useState("");
+  const [draftName, setDraftName] = useState(user?.name || "Root Admin");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -338,10 +332,6 @@ export default function ProfilePage() {
       setAvatar(url);
     }
   };
-
-  useEffect(() => {
-    setDraftName(user?.name || "Root Admin");
-  }, [user?.name]);
 
   const handleSaveName = () => {
     const trimmedName = draftName.trim();
@@ -425,7 +415,7 @@ export default function ProfilePage() {
             <p className="text-sm text-foreground/50">Edit card details or remove cards from your collection.</p>
           </div>
           <span className="px-4 py-2 rounded-full bg-current/5 text-sm font-bold">
-            {cards.length} cards
+            {cards.length}
           </span>
         </div>
 
@@ -472,22 +462,29 @@ export default function ProfilePage() {
         )}
       </section>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {STATS.map((stat) => {
-          const Icon = stat.icon;
-          return (
-            <div key={stat.label} className="p-6 rounded-3xl border border-current/10 space-y-4">
-              <div className={`p-3 rounded-2xl bg-current/5 w-fit ${stat.color}`}>
-                <Icon size={20} />
+      <section className="space-y-6">
+        <div>
+          <h3 className="text-2xl font-bold">Your Activity</h3>
+          <p className="text-sm text-foreground/50">Saved cards, likes, listings, and overall collection movement.</p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {STATS.map((stat) => {
+            const Icon = stat.icon;
+            return (
+              <div key={stat.label} className="p-6 rounded-3xl border border-current/10 space-y-4">
+                <div className={`p-3 rounded-2xl bg-current/5 w-fit ${stat.color}`}>
+                  <Icon size={20} />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-foreground/40 uppercase tracking-wider">{stat.label}</p>
+                  <p className="text-2xl font-bold">{stat.value}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-bold text-foreground/40 uppercase tracking-wider">{stat.label}</p>
-                <p className="text-2xl font-bold">{stat.value}</p>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      </section>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="space-y-4">
