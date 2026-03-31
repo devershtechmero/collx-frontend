@@ -1,21 +1,33 @@
 "use client";
 
+import { useClerk } from "@clerk/nextjs";
 import { X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
 
 import { GoogleAuthButton } from "@/components/shared/auth/google-auth-button";
 import { useAuth } from "@/lib/hooks/use-auth";
 
 type AuthMode = "register" | "login" | "forgot-password";
 type SignupStep = "form" | "verify";
+type LoginStep = "form" | "verify";
 type ForgotPasswordStep = "email" | "verify" | "reset" | "success";
 
 const OTP_LENGTH = 8;
+
+function getClerkErrorMessage(error: unknown) {
+  if (error && typeof error === "object" && "message" in error) {
+    return String(error.message);
+  }
+
+  return "Unable to continue with Google right now.";
+}
 
 export function AuthCta() {
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<AuthMode>("register");
   const [signupStep, setSignupStep] = useState<SignupStep>("form");
+  const [loginStep, setLoginStep] = useState<LoginStep>("form");
   const [forgotPasswordStep, setForgotPasswordStep] =
     useState<ForgotPasswordStep>("email");
   const [email, setEmail] = useState("");
@@ -23,17 +35,33 @@ export function AuthCta() {
   const [otp, setOtp] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  
-  const { login } = useAuth();
+  const [previewOtp, setPreviewOtp] = useState<string | null>(null);
+  const [resetToken, setResetToken] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const {
+    login,
+    verifyLogin,
+    signup,
+    verifySignup,
+    startForgotPassword,
+    verifyForgotPassword,
+    resetPassword,
+  } = useAuth();
+  const clerk = useClerk();
 
   function resetAuthState() {
     setSignupStep("form");
+    setLoginStep("form");
     setForgotPasswordStep("email");
     setEmail("");
     setPassword("");
     setOtp("");
     setNewPassword("");
     setConfirmPassword("");
+    setPreviewOtp(null);
+    setResetToken(null);
+    setIsSubmitting(false);
   }
 
   function openRegisterPopup() {
@@ -91,22 +119,100 @@ export function AuthCta() {
     };
   }, [closeAuthPopup, isAuthOpen]);
 
-  function handleCreateAccount(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    if (!email || !password) {
+  async function handleGoogleAuth() {
+    if (!clerk.client) {
+      toast.error("Google sign in is not ready yet.");
       return;
     }
 
-    setOtp("");
-    setSignupStep("verify");
+    try {
+      setIsSubmitting(true);
+      const authResource =
+        authMode === "register" ? clerk.client.signUp : clerk.client.signIn;
+
+      await authResource.authenticateWithRedirect({
+        strategy: "oauth_google",
+        redirectUrl: "/sso-callback",
+        redirectUrlComplete: "/dashboard",
+        continueSignUp: true,
+        continueSignIn: true,
+      });
+    } catch (error) {
+      toast.error(getClerkErrorMessage(error));
+      setIsSubmitting(false);
+    }
   }
 
-  function handleLogin(event: React.FormEvent<HTMLFormElement>) {
+  async function handleCreateAccount(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const success = login(email, password);
-    if (success) {
+
+    if (!email || !password) {
+      toast.error("Email and password are required.");
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      const response = await signup(email, password);
+      setOtp("");
+      setPreviewOtp(response.previewOtp || null);
+      setSignupStep("verify");
+      toast.success("Signup OTP sent to your email.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to create account.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  async function handleCompleteSignup() {
+    if (!isSignupOtpComplete) {
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      await verifySignup(email, otp);
       closeAuthPopup();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to verify OTP.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  async function handleLogin(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    try {
+      setIsSubmitting(true);
+      const response = await login(email, password);
+
+      if (response) {
+        setOtp("");
+        setPreviewOtp(response.previewOtp || null);
+        setLoginStep("verify");
+        toast.success("Login OTP sent to your email.");
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  async function handleCompleteLogin() {
+    if (otp.length !== OTP_LENGTH) {
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      const success = await verifyLogin(email, otp);
+
+      if (success) {
+        closeAuthPopup();
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -114,20 +220,31 @@ export function AuthCta() {
     setOtp(event.target.value.replace(/\D/g, "").slice(0, OTP_LENGTH));
   }
 
-  function handleForgotPasswordEmailSubmit(
+  async function handleForgotPasswordEmailSubmit(
     event: React.FormEvent<HTMLFormElement>,
   ) {
     event.preventDefault();
 
     if (!email) {
+      toast.error("Email is required.");
       return;
     }
 
-    setOtp("");
-    setForgotPasswordStep("verify");
+    try {
+      setIsSubmitting(true);
+      const response = await startForgotPassword(email);
+      setOtp("");
+      setPreviewOtp(response.previewOtp || null);
+      setForgotPasswordStep("verify");
+      toast.success("OTP sent for password reset.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to send OTP.");
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
-  function handleForgotPasswordOtpSubmit(
+  async function handleForgotPasswordOtpSubmit(
     event: React.FormEvent<HTMLFormElement>,
   ) {
     event.preventDefault();
@@ -136,19 +253,39 @@ export function AuthCta() {
       return;
     }
 
-    setForgotPasswordStep("reset");
+    try {
+      setIsSubmitting(true);
+      const response = await verifyForgotPassword(email, otp);
+      setResetToken(response.resetToken);
+      setForgotPasswordStep("reset");
+      toast.success("OTP verified.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to verify OTP.");
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
-  function handleForgotPasswordResetSubmit(
+  async function handleForgotPasswordResetSubmit(
     event: React.FormEvent<HTMLFormElement>,
   ) {
     event.preventDefault();
 
-    if (!passwordsMatch) {
+    if (!passwordsMatch || !resetToken) {
       return;
     }
 
-    setForgotPasswordStep("success");
+    try {
+      setIsSubmitting(true);
+      await resetPassword(email, newPassword, resetToken);
+      setForgotPasswordStep("success");
+      setPreviewOtp(null);
+      setResetToken(null);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to reset password.");
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   const isSignupOtpComplete = otp.length === OTP_LENGTH;
@@ -226,7 +363,12 @@ export function AuthCta() {
                   </p>
                 </div>
 
-                <GoogleAuthButton label="Continue with Google" className="mt-6" />
+                <GoogleAuthButton
+                  label={isSubmitting ? "Connecting..." : "Continue with Google"}
+                  className="mt-6"
+                  disabled={isSubmitting}
+                  onClick={handleGoogleAuth}
+                />
 
                 <div className="my-6 flex items-center gap-4">
                   <div className="h-px flex-1 bg-current/15" />
@@ -265,9 +407,10 @@ export function AuthCta() {
 
                   <button
                     type="submit"
+                    disabled={isSubmitting}
                     className="inline-flex w-full items-center justify-center rounded-full border border-current/30 px-5 py-3 text-sm font-semibold text-foreground transition-transform duration-200 hover:cursor-pointer hover:bg-foreground/8"
                   >
-                    Create account
+                    {isSubmitting ? "Sending OTP..." : "Create account"}
                   </button>
                 </form>
 
@@ -289,13 +432,18 @@ export function AuthCta() {
                 <div className="rounded-2xl border border-current/15 bg-foreground/4 px-4 py-4">
                   <h4 className="text-lg font-semibold">Verify your account</h4>
                   <p className="mt-2 text-sm leading-6 text-foreground/70">
-                    We simulated sending an 8 digit OTP to{" "}
+                    We sent an 8 digit OTP to{" "}
                     <span className="font-semibold text-foreground">
                       {email}
                     </span>
                     . Enter it below to complete signup.
                   </p>
                 </div>
+                {previewOtp ? (
+                  <p className="rounded-2xl border border-current/15 bg-foreground/4 px-4 py-3 text-sm text-foreground/70">
+                    Development OTP: <span className="font-semibold text-foreground">{previewOtp}</span>
+                  </p>
+                ) : null}
 
                 <div className="space-y-2">
                   <span className="text-sm font-medium text-foreground/75">
@@ -315,15 +463,16 @@ export function AuthCta() {
 
                 <button
                   type="button"
+                  onClick={handleCompleteSignup}
                   disabled={!isSignupOtpComplete}
                   className="inline-flex w-full items-center justify-center rounded-full border border-current/30 px-5 py-3 text-sm font-semibold text-foreground transition-transform duration-200 hover:bg-foreground/8 disabled:cursor-not-allowed disabled:opacity-45"
                 >
-                  Complete sign up
+                  {isSubmitting ? "Verifying..." : "Complete sign up"}
                 </button>
               </div>
             ) : null}
 
-            {authMode === "login" ? (
+            {authMode === "login" && loginStep === "form" ? (
               <>
                 <div className="pr-12">
                   <h3 className="text-2xl font-semibold tracking-[-0.04em]">
@@ -335,7 +484,12 @@ export function AuthCta() {
                   </p>
                 </div>
 
-                <GoogleAuthButton label="Continue with Google" className="mt-6" />
+                <GoogleAuthButton
+                  label={isSubmitting ? "Connecting..." : "Continue with Google"}
+                  className="mt-6"
+                  disabled={isSubmitting}
+                  onClick={handleGoogleAuth}
+                />
 
                 <div className="my-6 flex items-center gap-4">
                   <div className="h-px flex-1 bg-current/15" />
@@ -383,9 +537,10 @@ export function AuthCta() {
 
                   <button
                     type="submit"
+                    disabled={isSubmitting}
                     className="inline-flex w-full items-center justify-center rounded-full border border-current/30 px-5 py-3 text-sm font-semibold text-foreground transition-colors duration-200 hover:bg-foreground/8"
                   >
-                    Login
+                    {isSubmitting ? "Sending OTP..." : "Login"}
                   </button>
                 </form>
 
@@ -402,6 +557,51 @@ export function AuthCta() {
               </>
             ) : null}
 
+            {authMode === "login" && loginStep === "verify" ? (
+              <div className="space-y-5 pt-4">
+                <div className="rounded-2xl border border-current/15 bg-foreground/4 px-4 py-4">
+                  <h4 className="text-lg font-semibold">Verify your login</h4>
+                  <p className="mt-2 text-sm leading-6 text-foreground/70">
+                    We sent an 8 digit OTP to{" "}
+                    <span className="font-semibold text-foreground">
+                      {email}
+                    </span>
+                    . Enter it below to continue to your dashboard.
+                  </p>
+                </div>
+                {previewOtp ? (
+                  <p className="rounded-2xl border border-current/15 bg-foreground/4 px-4 py-3 text-sm text-foreground/70">
+                    Development OTP: <span className="font-semibold text-foreground">{previewOtp}</span>
+                  </p>
+                ) : null}
+
+                <div className="space-y-2">
+                  <span className="text-sm font-medium text-foreground/75">
+                    8 digit OTP
+                  </span>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={OTP_LENGTH}
+                    value={otp}
+                    onChange={handleOtpChange}
+                    placeholder="Enter 8 digit OTP"
+                    aria-label="8 digit OTP"
+                    className="w-full rounded-2xl border border-current/15 bg-background px-4 py-3 text-sm outline-none transition-colors duration-200 placeholder:text-foreground/40 focus:border-current/35"
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleCompleteLogin}
+                  disabled={otp.length !== OTP_LENGTH || isSubmitting}
+                  className="inline-flex w-full items-center justify-center rounded-full border border-current/30 px-5 py-3 text-sm font-semibold text-foreground transition-transform duration-200 hover:bg-foreground/8 disabled:cursor-not-allowed disabled:opacity-45"
+                >
+                  {isSubmitting ? "Verifying..." : "Verify and continue"}
+                </button>
+              </div>
+            ) : null}
+
             {authMode === "forgot-password" && forgotPasswordStep === "email" ? (
               <>
                 <div className="pr-12">
@@ -409,7 +609,7 @@ export function AuthCta() {
                     Forgot password
                   </h3>
                   <p className="mt-2 text-sm leading-6 text-foreground/70">
-                    Enter your email and we&apos;ll simulate sending an OTP for
+                    Enter your email and we&apos;ll send an OTP for
                     password recovery.
                   </p>
                 </div>
@@ -433,9 +633,10 @@ export function AuthCta() {
 
                   <button
                     type="submit"
+                    disabled={isSubmitting}
                     className="inline-flex w-full items-center justify-center rounded-full border border-current/30 px-5 py-3 text-sm font-semibold text-foreground transition-colors duration-200 hover:bg-foreground/8"
                   >
-                    Send OTP
+                    {isSubmitting ? "Sending OTP..." : "Send OTP"}
                   </button>
                 </form>
               </>
@@ -449,13 +650,18 @@ export function AuthCta() {
                     OTP verification
                   </h3>
                   <p className="mt-2 text-sm leading-6 text-foreground/70">
-                    We simulated sending an 8 digit OTP to{" "}
+                    We sent an 8 digit OTP to{" "}
                     <span className="font-semibold text-foreground">
                       {email}
                     </span>
                     .
                   </p>
                 </div>
+                {previewOtp ? (
+                  <p className="rounded-2xl border border-current/15 bg-foreground/4 px-4 py-3 text-sm text-foreground/70">
+                    Development OTP: <span className="font-semibold text-foreground">{previewOtp}</span>
+                  </p>
+                ) : null}
 
                 <form
                   className="mt-6 space-y-4"
@@ -478,10 +684,10 @@ export function AuthCta() {
 
                   <button
                     type="submit"
-                    disabled={otp.length !== OTP_LENGTH}
+                    disabled={otp.length !== OTP_LENGTH || isSubmitting}
                     className="inline-flex w-full items-center justify-center rounded-full border border-current/30 px-5 py-3 text-sm font-semibold text-foreground transition-colors duration-200 hover:bg-foreground/8 disabled:cursor-not-allowed disabled:opacity-45"
                   >
-                    Verify OTP
+                    {isSubmitting ? "Verifying..." : "Verify OTP"}
                   </button>
                 </form>
               </>
@@ -541,10 +747,10 @@ export function AuthCta() {
 
                   <button
                     type="submit"
-                    disabled={!passwordsMatch}
+                    disabled={!passwordsMatch || isSubmitting}
                     className="inline-flex w-full items-center justify-center rounded-full border border-current/30 px-5 py-3 text-sm font-semibold text-foreground transition-colors duration-200 hover:bg-foreground/8 disabled:cursor-not-allowed disabled:opacity-45"
                   >
-                    Update password
+                    {isSubmitting ? "Updating..." : "Update password"}
                   </button>
                 </form>
               </>

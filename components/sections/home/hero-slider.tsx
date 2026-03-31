@@ -37,7 +37,8 @@ export function HeroSlider() {
                   src={slide.imageSrc}
                   alt={slide.imageAlt}
                   fill
-                  priority={index === 0}
+                  priority={isActive}
+                  loading={isActive ? "eager" : "lazy"}
                   className="object-cover"
                 />
 

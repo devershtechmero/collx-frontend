@@ -40,7 +40,7 @@ export default function TermsPage() {
             <section>
               <h2 className="text-2xl font-bold text-foreground mb-4">4. Limitation of Liability</h2>
               <p>
-                CollX is provided "as is" without warranty of any kind. In no event 
+                CollX is provided &quot;as is&quot; without warranty of any kind. In no event 
                 shall CollX be liable for any damages arising out of your use of the service.
               </p>
             </section>

@@ -1,15 +1,21 @@
 type GoogleAuthButtonProps = {
   label: string;
   className?: string;
+  disabled?: boolean;
+  onClick?: () => void;
 };
 
 export function GoogleAuthButton({
   label,
   className = "",
+  disabled = false,
+  onClick,
 }: GoogleAuthButtonProps) {
   return (
     <button
       type="button"
+      disabled={disabled}
+      onClick={onClick}
       className={`flex w-full items-center justify-center gap-3 rounded-2xl border border-current/15 px-4 py-3 text-sm font-semibold transition-colors duration-200 hover:cursor-pointer hover:bg-foreground/6 ${className}`.trim()}
     >
       <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5">

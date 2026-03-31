@@ -2,7 +2,7 @@
 
 import { useAuth } from "@/lib/hooks/use-auth";
 import { ThemeToggle } from "@/components/shared/theme/theme-toggle";
-import { Home, LayoutGrid, Search, User, LogOut, Scan, Menu, X, MessageSquare } from "lucide-react";
+import { Home, LayoutGrid, Search, User, LogOut, Menu, X, MessageSquare } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";

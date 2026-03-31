@@ -10,13 +10,13 @@ export default function AboutPage() {
           <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">About CollX</h1>
           <div className="mt-10 space-y-8 text-lg text-foreground/80 leading-relaxed">
             <p>
-              CollX (pronounced "collects") is the fastest way for sports card collectors to track their 
+              CollX (pronounced &quot;collects&quot;) is the fastest way for sports card collectors to track their 
               collections and find the value of their cards. By using advanced image recognition 
               technology, we make it possible to identify and price any card in seconds.
             </p>
             <p>
               Our mission is to empower collectors by providing them with the data and tools 
-              they need to manage their cards like professional assets. Whether you're a 
+              they need to manage their cards like professional assets. Whether you&apos;re a 
               seasoned pro or just starting out, CollX is built for you.
             </p>
             <h2 className="text-2xl font-bold text-foreground">Our Story</h2>

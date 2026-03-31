@@ -1,9 +1,22 @@
 "use client";
 
 import Image from "next/image";
-import { useAuth } from "@/lib/hooks/use-auth";
-import { User, Lock, Trash2, Heart, Bookmark, BarChart3, TrendingUp, Camera, X, Pencil, ImagePlus, Check } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import {
+  BarChart3,
+  Bookmark,
+  Camera,
+  Check,
+  Heart,
+  ImagePlus,
+  Lock,
+  Pencil,
+  Trash2,
+  TrendingUp,
+  User,
+  X,
+} from "lucide-react";
+import { useAuth } from "@/lib/hooks/use-auth";
 import { type Card, CATEGORIES } from "@/lib/mock/cards";
 import {
   COLLECTION_STORAGE_EVENT,
@@ -15,45 +28,77 @@ import {
   updateCollectionCard,
 } from "@/lib/store/collection-store";
 
-function ResetPasswordModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+function ResetPasswordModal({
+  isOpen,
+  onClose,
+  onReset,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onReset: (currentPassword: string, newPassword: string) => Promise<boolean>;
+}) {
+  const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!isOpen) return null;
 
-  const handleReset = (e: React.FormEvent) => {
+  const handleReset = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+
+    if (!currentPassword) {
+      setError("Current password is required");
+      return;
+    }
+
     if (newPassword !== confirmPassword) {
       setError("Passwords do not match");
       return;
     }
-    if (newPassword.length < 4) {
-      setError("Password must be at least 4 characters");
+
+    if (newPassword.length < 6) {
+      setError("Password must be at least 6 characters");
       return;
     }
+
+    setIsSubmitting(true);
+    const didReset = await onReset(currentPassword, newPassword);
+    setIsSubmitting(false);
+
+    if (!didReset) {
+      return;
+    }
+
     setSuccess(true);
     setTimeout(() => {
       setSuccess(false);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
       onClose();
     }, 2000);
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="w-full max-w-md bg-background border border-current/10 rounded-[2.5rem] p-8 shadow-2xl space-y-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-6 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="w-full max-w-md rounded-[2.5rem] border border-current/10 bg-background p-8 shadow-2xl space-y-6">
         <div className="flex items-center justify-between">
           <h3 className="text-2xl font-bold">Reset Password</h3>
-          <button onClick={onClose} className="p-2 hover:bg-current/5 rounded-full transition-colors">
+          <button
+            onClick={onClose}
+            className="rounded-full p-2 transition-colors hover:bg-current/5"
+          >
             <X size={20} />
           </button>
         </div>
 
         {success ? (
-          <div className="py-10 text-center space-y-4">
-            <div className="w-16 h-16 bg-green-500/10 text-green-500 rounded-full flex items-center justify-center mx-auto">
+          <div className="space-y-4 py-10 text-center">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-500/10 text-green-500">
               <Lock size={32} />
             </div>
             <p className="font-bold text-green-500">Password Updated Successfully!</p>
@@ -61,30 +106,45 @@ function ResetPasswordModal({ isOpen, onClose }: { isOpen: boolean; onClose: () 
         ) : (
           <form onSubmit={handleReset} className="space-y-4">
             <div className="space-y-2">
+              <label className="text-sm font-bold opacity-60">Current Password</label>
+              <input
+                type="password"
+                required
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                className="w-full rounded-2xl border border-transparent bg-current/5 px-5 py-4 font-medium outline-none transition-all focus:border-current/10 focus:bg-background"
+                placeholder="Current password"
+              />
+            </div>
+            <div className="space-y-2">
               <label className="text-sm font-bold opacity-60">New Password</label>
-              <input 
-                type="password" 
+              <input
+                type="password"
                 required
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                className="w-full bg-current/5 border border-transparent rounded-2xl px-5 py-4 outline-none focus:bg-background focus:border-current/10 transition-all font-medium"
-                placeholder="••••••••"
+                className="w-full rounded-2xl border border-transparent bg-current/5 px-5 py-4 font-medium outline-none transition-all focus:border-current/10 focus:bg-background"
+                placeholder="New password"
               />
             </div>
             <div className="space-y-2">
               <label className="text-sm font-bold opacity-60">Confirm New Password</label>
-              <input 
-                type="password" 
+              <input
+                type="password"
                 required
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full bg-current/5 border border-transparent rounded-2xl px-5 py-4 outline-none focus:bg-background focus:border-current/10 transition-all font-medium"
-                placeholder="••••••••"
+                className="w-full rounded-2xl border border-transparent bg-current/5 px-5 py-4 font-medium outline-none transition-all focus:border-current/10 focus:bg-background"
+                placeholder="Confirm new password"
               />
             </div>
-            {error && <p className="text-xs font-bold text-red-500">{error}</p>}
-            <button type="submit" className="w-full bg-foreground text-background py-4 rounded-full font-bold hover:scale-[1.02] active:scale-[0.98] transition-all mt-4">
-              Update Password
+            {error ? <p className="text-xs font-bold text-red-500">{error}</p> : null}
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="mt-4 w-full rounded-full bg-foreground py-4 font-bold text-background transition-all hover:scale-[1.02] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isSubmitting ? "Updating..." : "Update Password"}
             </button>
           </form>
         )}
@@ -114,21 +174,25 @@ function DeleteAccountModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="w-full max-w-md bg-background border border-current/10 rounded-[2.5rem] p-8 shadow-2xl space-y-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-6 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="w-full max-w-md rounded-[2.5rem] border border-current/10 bg-background p-8 shadow-2xl space-y-6">
         <div className="flex items-center justify-between">
           <h3 className="text-2xl font-bold text-red-500">Delete Account</h3>
-          <button onClick={onClose} className="p-2 hover:bg-current/5 rounded-full transition-colors">
+          <button
+            onClick={onClose}
+            className="rounded-full p-2 transition-colors hover:bg-current/5"
+          >
             <X size={20} />
           </button>
         </div>
 
         <div className="space-y-3">
-          <p className="text-sm font-medium text-foreground/70 leading-relaxed">
-            All data will be deleted and can never be recovered. Please confirm before continuing.
+          <p className="text-sm font-medium leading-relaxed text-foreground/70">
+            All data will be deleted and can never be recovered. Please confirm
+            before continuing.
           </p>
           <div className="space-y-3 rounded-3xl border border-red-500/10 bg-red-500/5 p-5">
-            <label className="flex items-center gap-3 cursor-pointer">
+            <label className="flex cursor-pointer items-center gap-3">
               <input
                 type="radio"
                 name="delete-account-confirmation"
@@ -138,7 +202,7 @@ function DeleteAccountModal({
               />
               <span className="font-medium">Yes, delete my account permanently</span>
             </label>
-            <label className="flex items-center gap-3 cursor-pointer">
+            <label className="flex cursor-pointer items-center gap-3">
               <input
                 type="radio"
                 name="delete-account-confirmation"
@@ -155,10 +219,10 @@ function DeleteAccountModal({
           type="button"
           disabled={confirmation !== "yes"}
           onClick={onDelete}
-          className={`w-full py-4 rounded-full font-bold transition-all ${
+          className={`w-full rounded-full py-4 font-bold transition-all ${
             confirmation === "yes"
               ? "bg-red-500 text-white hover:scale-[1.02] active:scale-[0.98]"
-              : "bg-current/10 text-foreground/30 cursor-not-allowed"
+              : "cursor-not-allowed bg-current/10 text-foreground/30"
           }`}
         >
           Delete Account
@@ -210,24 +274,30 @@ function EditCardModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center p-3 sm:p-6 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200 sm:items-center">
-      <div className="w-full max-w-2xl max-h-[92vh] overflow-y-auto bg-background border border-current/10 rounded-4xl sm:rounded-[2.5rem] p-4 sm:p-8 shadow-2xl space-y-5 sm:space-y-6">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-background/80 p-3 backdrop-blur-sm animate-in fade-in duration-200 sm:items-center sm:p-6">
+      <div className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-4xl border border-current/10 bg-background p-4 shadow-2xl space-y-5 sm:rounded-[2.5rem] sm:p-8 sm:space-y-6">
         <div className="flex items-center justify-between gap-4">
-          <h3 className="text-xl sm:text-2xl font-bold">Edit Card</h3>
-          <button onClick={onClose} className="p-2 hover:bg-current/5 rounded-full transition-colors shrink-0">
+          <h3 className="text-xl font-bold sm:text-2xl">Edit Card</h3>
+          <button
+            onClick={onClose}
+            className="shrink-0 rounded-full p-2 transition-colors hover:bg-current/5"
+          >
             <X size={20} />
           </button>
         </div>
 
-        <form onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-5 sm:gap-6">
+        <form
+          onSubmit={handleSave}
+          className="grid grid-cols-1 gap-5 md:grid-cols-[220px_1fr] sm:gap-6"
+        >
           <div className="space-y-3 sm:space-y-4">
-            <div className="relative mx-auto w-full max-w-55 aspect-4/5 sm:max-w-none sm:aspect-3/4 rounded-3xl sm:rounded-4xl overflow-hidden border border-current/10 bg-current/5">
+            <div className="relative mx-auto aspect-4/5 w-full max-w-55 overflow-hidden rounded-3xl border border-current/10 bg-current/5 sm:max-w-none sm:aspect-3/4 sm:rounded-4xl">
               <Image src={form.image} alt={form.name} fill className="object-cover" />
             </div>
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-full border border-current/10 hover:bg-current/5 transition-all text-sm font-bold"
+              className="flex w-full items-center justify-center gap-2 rounded-full border border-current/10 px-4 py-3 text-sm font-bold transition-all hover:bg-current/5"
             >
               <ImagePlus size={16} />
               <span>Change Image</span>
@@ -248,7 +318,7 @@ function EditCardModal({
                 required
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-                className="w-full bg-current/5 border border-transparent rounded-2xl px-4 sm:px-5 py-3.5 sm:py-4 outline-none focus:bg-background focus:border-current/10 transition-all font-medium"
+                className="w-full rounded-2xl border border-transparent bg-current/5 px-4 py-3.5 font-medium outline-none transition-all focus:border-current/10 focus:bg-background sm:px-5 sm:py-4"
               />
             </div>
             <div className="space-y-2">
@@ -259,7 +329,7 @@ function EditCardModal({
                 type="number"
                 value={form.price}
                 onChange={(e) => setForm({ ...form, price: Number(e.target.value) })}
-                className="w-full bg-current/5 border border-transparent rounded-2xl px-4 sm:px-5 py-3.5 sm:py-4 outline-none focus:bg-background focus:border-current/10 transition-all font-medium"
+                className="w-full rounded-2xl border border-transparent bg-current/5 px-4 py-3.5 font-medium outline-none transition-all focus:border-current/10 focus:bg-background sm:px-5 sm:py-4"
               />
             </div>
             <div className="space-y-2">
@@ -267,7 +337,7 @@ function EditCardModal({
               <select
                 value={form.category}
                 onChange={(e) => setForm({ ...form, category: e.target.value })}
-                className="w-full bg-current/5 border border-transparent rounded-2xl px-4 sm:px-5 py-3.5 sm:py-4 outline-none focus:bg-background focus:border-current/10 transition-all font-medium"
+                className="w-full rounded-2xl border border-transparent bg-current/5 px-4 py-3.5 font-medium outline-none transition-all focus:border-current/10 focus:bg-background sm:px-5 sm:py-4"
               >
                 {CATEGORIES.map((category) => (
                   <option key={category} value={category}>
@@ -276,11 +346,18 @@ function EditCardModal({
                 ))}
               </select>
             </div>
-            <div className="flex flex-col-reverse sm:flex-row gap-3 pt-2">
-              <button type="button" onClick={onClose} className="w-full sm:w-auto px-6 py-3.5 sm:py-4 rounded-full border border-current/10 font-bold hover:bg-current/5 transition-all">
+            <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row">
+              <button
+                type="button"
+                onClick={onClose}
+                className="w-full rounded-full border border-current/10 px-6 py-3.5 font-bold transition-all hover:bg-current/5 sm:w-auto sm:py-4"
+              >
                 Cancel
               </button>
-              <button type="submit" className="flex-1 bg-foreground text-background py-3.5 sm:py-4 rounded-full font-bold hover:scale-[1.02] active:scale-[0.98] transition-all">
+              <button
+                type="submit"
+                className="flex-1 rounded-full bg-foreground py-3.5 font-bold text-background transition-all hover:scale-[1.02] active:scale-[0.98] sm:py-4"
+              >
                 Save Changes
               </button>
             </div>
@@ -292,7 +369,7 @@ function EditCardModal({
 }
 
 export default function ProfilePage() {
-  const { user, updateUserName, deleteAccount } = useAuth();
+  const { user, updateUserName, changePassword, deleteAccount } = useAuth();
   const [avatar, setAvatar] = useState<string | null>(null);
   const [isResetOpen, setIsResetOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -303,7 +380,7 @@ export default function ProfilePage() {
   const [forSaleCards, setForSaleCards] = useState<Card[]>([]);
   const [editingCard, setEditingCard] = useState<Card | null>(null);
   const [isEditingName, setIsEditingName] = useState(false);
-  const [draftName, setDraftName] = useState(user?.name || "Root Admin");
+  const [draftName, setDraftName] = useState(user?.name || "Collector");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -336,36 +413,45 @@ export default function ProfilePage() {
   const handleSaveName = () => {
     const trimmedName = draftName.trim();
     if (!trimmedName) return;
-    updateUserName(trimmedName);
-    setIsEditingName(false);
+
+    void updateUserName(trimmedName).then((didUpdate) => {
+      if (didUpdate) {
+        setIsEditingName(false);
+      }
+    });
   };
 
   const STATS = [
     { label: "Saved Items", value: savedCount, icon: Bookmark, color: "text-blue-500" },
     { label: "Liked Cards", value: likedCount, icon: Heart, color: "text-pink-500" },
     { label: "Cards for Sale", value: forSaleCount, icon: BarChart3, color: "text-green-500" },
-    { label: "Total Profit", value: `$${cards.reduce((total, card) => total + card.price, 0).toLocaleString()}`, icon: TrendingUp, color: "text-orange-500" },
+    {
+      label: "Total Profit",
+      value: `$${cards.reduce((total, card) => total + card.price, 0).toLocaleString()}`,
+      icon: TrendingUp,
+      color: "text-orange-500",
+    },
   ];
 
   return (
     <div className="max-w-4xl space-y-10">
-      <div className="flex flex-col md:flex-row items-start md:items-center gap-8 border-b border-current/5 pb-10">
-        <div className="relative group cursor-pointer" onClick={handleAvatarClick}>
-        <div className="w-24 h-24 rounded-xl bg-foreground text-background flex items-center justify-center overflow-hidden border-4 border-current/5">
-          {avatar ? (
-            <Image src={avatar} alt="Avatar" fill className="object-cover" />
-          ) : (
-            <User size={64} />
-          )}
-        </div>
-          <div className="absolute inset-0 bg-black/40 rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-[2px]">
+      <div className="flex flex-col items-start gap-8 border-b border-current/5 pb-10 md:flex-row md:items-center">
+        <div className="relative cursor-pointer group" onClick={handleAvatarClick}>
+          <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-xl border-4 border-current/5 bg-foreground text-background">
+            {avatar ? (
+              <Image src={avatar} alt="Avatar" fill className="object-cover" />
+            ) : (
+              <User size={64} />
+            )}
+          </div>
+          <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-black/40 opacity-0 backdrop-blur-[2px] transition-opacity group-hover:opacity-100">
             <Camera className="text-white" size={24} />
           </div>
-          <input 
-            type="file" 
-            ref={fileInputRef} 
-            className="hidden" 
-            accept="image/*" 
+          <input
+            type="file"
+            ref={fileInputRef}
+            className="hidden"
+            accept="image/*"
             onChange={handleFileChange}
           />
         </div>
@@ -376,11 +462,11 @@ export default function ProfilePage() {
                 <input
                   value={draftName}
                   onChange={(e) => setDraftName(e.target.value)}
-                  className="bg-current/5 border border-transparent rounded-2xl px-4 py-2 text-2xl font-bold tracking-tight outline-none focus:bg-background focus:border-current/10 transition-all"
+                  className="rounded-2xl border border-transparent bg-current/5 px-4 py-2 text-2xl font-bold tracking-tight outline-none transition-all focus:border-current/10 focus:bg-background"
                 />
                 <button
                   onClick={handleSaveName}
-                  className="p-2 rounded-full border border-current/10 hover:bg-current/5 transition-all"
+                  className="rounded-full border border-current/10 p-2 transition-all hover:bg-current/5"
                   aria-label="Save name"
                 >
                   <Check size={16} />
@@ -389,11 +475,17 @@ export default function ProfilePage() {
             ) : (
               <>
                 <h2 className="text-2xl font-bold tracking-tight">
-                  {user?.name || "Root Admin"} <span className="text-foreground/30 font-normal text-lg ml-2">#rootadmin80</span>
+                  {user?.name || "Collector"}{" "}
+                  <span className="ml-2 text-lg font-normal text-foreground/30">
+                    #{(user?.email || "collector").split("@")[0]}
+                  </span>
                 </h2>
                 <button
-                  onClick={() => setIsEditingName(true)}
-                  className="p-2 rounded-full border border-current/10 hover:bg-current/5 transition-all"
+                  onClick={() => {
+                    setDraftName(user?.name || "Collector");
+                    setIsEditingName(true);
+                  }}
+                  className="rounded-full border border-current/10 p-2 transition-all hover:bg-current/5"
                   aria-label="Edit name"
                 >
                   <Pencil size={16} />
@@ -401,9 +493,11 @@ export default function ProfilePage() {
               </>
             )}
           </div>
-          <p className="text-foreground/60 font-medium">{user?.email || "root@gmail.com"}</p>
+          <p className="font-medium text-foreground/60">{user?.email || "No email"}</p>
           <div className="flex gap-2 pt-2">
-            <span className="px-2 py-1 rounded-full bg-green-500 text-[9px] font-bold uppercase tracking-widest">Verified</span>
+            <span className="rounded-full bg-green-500 px-2 py-1 text-[9px] font-bold uppercase tracking-widest">
+              Verified
+            </span>
           </div>
         </div>
       </div>
@@ -412,41 +506,50 @@ export default function ProfilePage() {
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-2xl font-bold">Your Cards</h3>
-            <p className="text-sm text-foreground/50">Edit card details or remove cards from your collection.</p>
+            <p className="text-sm text-foreground/50">
+              Edit card details or remove cards from your collection.
+            </p>
           </div>
-          <span className="px-4 py-2 rounded-full bg-current/5 text-sm font-bold">
+          <span className="rounded-full bg-current/5 px-4 py-2 text-sm font-bold">
             {cards.length}
           </span>
         </div>
 
         {cards.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
             {cards.map((card) => (
-              <div key={card.id} className="rounded-4xl border border-current/10 p-4 space-y-4 bg-background">
-                <div className="relative aspect-3/4 rounded-3xl overflow-hidden bg-current/5">
-                    <Image src={card.image} alt={card.name} fill className="object-cover" />
-                  </div>
+              <div key={card.id} className="space-y-4 rounded-4xl border border-current/10 bg-background p-4">
+                <div className="relative aspect-3/4 overflow-hidden rounded-3xl bg-current/5">
+                  <Image src={card.image} alt={card.name} fill className="object-cover" />
+                </div>
                 <div className="space-y-1">
-                <p className="text-[10px] font-bold text-foreground/30 uppercase tracking-wider">{card.category}</p>
-                <h4 className="font-bold text-lg">{card.name}</h4>
-                <p className="text-foreground/60 text-sm">
-                    Asking Price: <span className="font-bold text-foreground">${card.price.toLocaleString()}</span>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-foreground/30">
+                    {card.category}
                   </p>
-                  {forSaleCards.some((listedCard) => listedCard.id === card.id) && (
-                    <p className="text-xs font-bold uppercase tracking-wider text-green-500">For Sale</p>
-                  )}
+                  <h4 className="text-lg font-bold">{card.name}</h4>
+                  <p className="text-sm text-foreground/60">
+                    Asking Price:{" "}
+                    <span className="font-bold text-foreground">
+                      ${card.price.toLocaleString()}
+                    </span>
+                  </p>
+                  {forSaleCards.some((listedCard) => listedCard.id === card.id) ? (
+                    <p className="text-xs font-bold uppercase tracking-wider text-green-500">
+                      For Sale
+                    </p>
+                  ) : null}
                 </div>
                 <div className="flex gap-3">
                   <button
                     onClick={() => setEditingCard(card)}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-full border border-current/10 hover:bg-current/5 transition-all text-sm font-bold"
+                    className="flex flex-1 items-center justify-center gap-2 rounded-full border border-current/10 px-4 py-3 text-sm font-bold transition-all hover:bg-current/5"
                   >
                     <Pencil size={16} />
                     <span>Edit</span>
                   </button>
                   <button
                     onClick={() => deleteCollectionCard(card.id)}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-full border border-red-500/10 text-red-500 hover:bg-red-500/5 transition-all text-sm font-bold"
+                    className="flex flex-1 items-center justify-center gap-2 rounded-full border border-red-500/10 px-4 py-3 text-sm font-bold text-red-500 transition-all hover:bg-red-500/5"
                   >
                     <Trash2 size={16} />
                     <span>Delete</span>
@@ -456,7 +559,7 @@ export default function ProfilePage() {
             ))}
           </div>
         ) : (
-          <div className="p-10 rounded-4xl border border-current/10 text-center text-foreground/40">
+          <div className="rounded-4xl border border-current/10 p-10 text-center text-foreground/40">
             No cards found in your collection yet.
           </div>
         )}
@@ -465,19 +568,23 @@ export default function ProfilePage() {
       <section className="space-y-6">
         <div>
           <h3 className="text-2xl font-bold">Your Activity</h3>
-          <p className="text-sm text-foreground/50">Saved cards, likes, listings, and overall collection movement.</p>
+          <p className="text-sm text-foreground/50">
+            Saved cards, likes, listings, and overall collection movement.
+          </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {STATS.map((stat) => {
             const Icon = stat.icon;
             return (
-              <div key={stat.label} className="p-6 rounded-3xl border border-current/10 space-y-4">
-                <div className={`p-3 rounded-2xl bg-current/5 w-fit ${stat.color}`}>
+              <div key={stat.label} className="space-y-4 rounded-3xl border border-current/10 p-6">
+                <div className={`w-fit rounded-2xl bg-current/5 p-3 ${stat.color}`}>
                   <Icon size={20} />
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-foreground/40 uppercase tracking-wider">{stat.label}</p>
+                  <p className="text-sm font-bold uppercase tracking-wider text-foreground/40">
+                    {stat.label}
+                  </p>
                   <p className="text-2xl font-bold">{stat.value}</p>
                 </div>
               </div>
@@ -486,13 +593,13 @@ export default function ProfilePage() {
         </div>
       </section>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
         <div className="space-y-4">
           <h3 className="text-xl font-bold">Account Settings</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <button 
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+            <button
               onClick={() => setIsResetOpen(true)}
-              className="w-full flex items-center justify-between p-5 rounded-2.5xl border border-current/5 hover:bg-current/5 transition-all text-left"
+              className="w-full rounded-2.5xl border border-current/5 p-5 text-left transition-all hover:bg-current/5"
             >
               <div className="flex items-center gap-4">
                 <Lock size={20} />
@@ -501,7 +608,7 @@ export default function ProfilePage() {
             </button>
             <button
               onClick={() => setIsDeleteOpen(true)}
-              className="w-full flex items-center justify-between p-5 rounded-2.5xl border border-red-500/10 hover:bg-red-500/5 transition-all text-left text-red-500"
+              className="w-full rounded-2.5xl border border-red-500/10 p-5 text-left text-red-500 transition-all hover:bg-red-500/5"
             >
               <div className="flex items-center gap-4">
                 <Trash2 size={20} />
@@ -511,11 +618,17 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        <ResetPasswordModal isOpen={isResetOpen} onClose={() => setIsResetOpen(false)} />
+        <ResetPasswordModal
+          isOpen={isResetOpen}
+          onClose={() => setIsResetOpen(false)}
+          onReset={changePassword}
+        />
         <DeleteAccountModal
           isOpen={isDeleteOpen}
           onClose={() => setIsDeleteOpen(false)}
-          onDelete={deleteAccount}
+          onDelete={() => {
+            void deleteAccount();
+          }}
         />
       </div>
 
