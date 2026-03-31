@@ -38,6 +38,7 @@ export function AuthCta() {
   const [previewOtp, setPreviewOtp] = useState<string | null>(null);
   const [resetToken, setResetToken] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
 
   const {
     login,
@@ -62,6 +63,7 @@ export function AuthCta() {
     setPreviewOtp(null);
     setResetToken(null);
     setIsSubmitting(false);
+    setIsGoogleSubmitting(false);
   }
 
   function openRegisterPopup() {
@@ -126,7 +128,7 @@ export function AuthCta() {
     }
 
     try {
-      setIsSubmitting(true);
+      setIsGoogleSubmitting(true);
       const authResource =
         authMode === "register" ? clerk.client.signUp : clerk.client.signIn;
 
@@ -139,7 +141,7 @@ export function AuthCta() {
       });
     } catch (error) {
       toast.error(getClerkErrorMessage(error));
-      setIsSubmitting(false);
+      setIsGoogleSubmitting(false);
     }
   }
 
@@ -364,9 +366,9 @@ export function AuthCta() {
                 </div>
 
                 <GoogleAuthButton
-                  label={isSubmitting ? "Connecting..." : "Continue with Google"}
+                  label={isGoogleSubmitting ? "Connecting..." : "Continue with Google"}
                   className="mt-6"
-                  disabled={isSubmitting}
+                  disabled={isGoogleSubmitting || isSubmitting}
                   onClick={handleGoogleAuth}
                 />
 
@@ -485,9 +487,9 @@ export function AuthCta() {
                 </div>
 
                 <GoogleAuthButton
-                  label={isSubmitting ? "Connecting..." : "Continue with Google"}
+                  label={isGoogleSubmitting ? "Connecting..." : "Continue with Google"}
                   className="mt-6"
-                  disabled={isSubmitting}
+                  disabled={isGoogleSubmitting || isSubmitting}
                   onClick={handleGoogleAuth}
                 />
 
