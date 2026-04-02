@@ -26,6 +26,22 @@ const AUTH_EVENT = "collx-user-updated";
 let cachedStoredUserRaw: string | null | undefined;
 let cachedStoredUserValue: AuthUser | null = null;
 
+const isMissingClerkSessionError = (error: unknown) => {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  return error.message.includes("No session was found with id");
+};
+
+const getErrorMessage = (error: unknown) => {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return null;
+};
+
 const readStoredUser = () => {
   if (typeof window === "undefined") {
     return null;
@@ -96,6 +112,32 @@ export function useAuth() {
     () => null,
   );
 
+  const handleMissingClerkSession = async () => {
+    clearAllCollectionData();
+    clearStoredUser();
+    toast.error("Your session expired. Please sign in again.");
+
+    try {
+      await clerk.signOut({ redirectUrl: "/" });
+    } catch {
+      router.replace("/");
+    }
+  };
+
+  const handleRequiredOauthSyncFailure = async (message?: string | null) => {
+    clearAllCollectionData();
+    clearStoredUser();
+    toast.error(
+      message || "We couldn't finish setting up your account. Please try again.",
+    );
+
+    try {
+      await clerk.signOut({ redirectUrl: "/" });
+    } catch {
+      router.replace("/");
+    }
+  };
+
   useEffect(() => {
     if (!isLoaded || !clerkUser) {
       return;
@@ -114,10 +156,24 @@ export function useAuth() {
     }
 
     const syncUser = async () => {
-      const token = await getToken();
+      let token: string | null = null;
+
+      try {
+        token = await getToken();
+      } catch (error) {
+        if (isMissingClerkSessionError(error)) {
+          await handleMissingClerkSession();
+          return;
+        }
+
+        writeStoredUser(nextUser);
+        return;
+      }
 
       if (!token) {
-        writeStoredUser(nextUser);
+        await handleRequiredOauthSyncFailure(
+          "We couldn't verify your Clerk session. Please sign in again.",
+        );
         return;
       }
 
@@ -128,8 +184,13 @@ export function useAuth() {
           token,
         });
         writeStoredUser(response.user);
-      } catch {
-        writeStoredUser(nextUser);
+      } catch (error) {
+        if (isMissingClerkSessionError(error)) {
+          await handleMissingClerkSession();
+          return;
+        }
+
+        await handleRequiredOauthSyncFailure(getErrorMessage(error));
       }
     };
 
@@ -230,6 +291,11 @@ export function useAuth() {
       toast.success("Profile name updated");
       return true;
     } catch (error) {
+      if (isMissingClerkSessionError(error)) {
+        await handleMissingClerkSession();
+        return false;
+      }
+
       toast.error((error as AuthApiError).message || "Unable to update profile name");
       return false;
     }
@@ -253,6 +319,11 @@ export function useAuth() {
       toast.success("Password updated successfully.");
       return true;
     } catch (error) {
+      if (isMissingClerkSessionError(error)) {
+        await handleMissingClerkSession();
+        return false;
+      }
+
       toast.error((error as AuthApiError).message || "Unable to update password");
       return false;
     }
@@ -269,6 +340,11 @@ export function useAuth() {
         token: token || undefined,
       });
     } catch (error) {
+      if (isMissingClerkSessionError(error)) {
+        await handleMissingClerkSession();
+        return false;
+      }
+
       toast.error((error as AuthApiError).message || "Unable to delete account");
       return false;
     }
