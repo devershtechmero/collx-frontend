@@ -4,7 +4,7 @@ import { COMPANY_LINKS, LEGAL_LINKS } from "@/lib/constants/navigation";
 const FOOTER_LINKS = [
   { label: "Features", href: "/#features" },
   { label: "Marketplace", href: "/#marketplace" },
-  { label: "Collection", href: "/#collection" },
+  { label: "Collection", href: "/collection" },
   { label: "Download App", href: "/#download" },
 ];
 
