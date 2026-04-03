@@ -36,7 +36,7 @@ function Pagination({
         type="button"
         onClick={() => onChange(Math.max(1, currentPage - 1))}
         disabled={currentPage === 1}
-        className="rounded-full border border-current/15 px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-40"
+        className="rounded-full border border-current/15 px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-foreground hover:text-background disabled:cursor-not-allowed disabled:opacity-40"
       >
         Previous
       </button>
@@ -48,7 +48,7 @@ function Pagination({
           onClick={() => onChange(page)}
           className={`h-10 min-w-10 rounded-full border px-3 text-sm font-semibold transition-colors ${page === currentPage
             ? "border-foreground bg-foreground text-background"
-            : "border-current/15"
+            : "border-current/15 text-foreground hover:bg-foreground hover:text-background"
             }`}
         >
           {page}
@@ -59,7 +59,7 @@ function Pagination({
         type="button"
         onClick={() => onChange(Math.min(totalPages, currentPage + 1))}
         disabled={currentPage === totalPages}
-        className="rounded-full border border-current/15 px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-40"
+        className="rounded-full border border-current/15 px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-foreground hover:text-background disabled:cursor-not-allowed disabled:opacity-40"
       >
         Next
       </button>
@@ -110,7 +110,7 @@ function CollectionCard({ card }: { card: Card }) {
         <div className="flex items-center justify-between gap-3">
           <Link
             href={`/collection/${card.id}`}
-            className="inline-flex items-center justify-center rounded-full border border-current/15 px-4 py-2 text-sm font-semibold transition-colors hover:bg-foreground hover:text-background"
+            className="inline-flex items-center justify-center rounded-full border border-current/15 px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-foreground hover:text-background"
           >
             View
           </Link>
@@ -120,7 +120,7 @@ function CollectionCard({ card }: { card: Card }) {
             onClick={() => setIsLiked(toggleLikedCard(card))}
             className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition-colors ${isLiked
               ? "border-foreground bg-foreground text-background"
-              : "border-current/15"
+              : "border-current/15 text-foreground hover:bg-foreground hover:text-background"
               }`}
             aria-pressed={isLiked}
             aria-label={isLiked ? `Unlike ${card.name}` : `Like ${card.name}`}
@@ -184,8 +184,8 @@ export function CollectionBrowserPage() {
       <SiteHeader />
 
       <section className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-8 sm:px-6 lg:px-12 lg:py-10">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-          <label className="relative flex w-full">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+          <label className="relative flex-1">
             <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-foreground/45" />
             <input
               type="search"
@@ -195,11 +195,11 @@ export function CollectionBrowserPage() {
               className="w-full rounded-full border border-current/15 bg-background py-4 pl-12 pr-4 text-sm outline-none transition-colors focus:border-current/35"
             />
           </label>
+
+          <ScanCardSection scanCandidates={scanCandidates} />
         </div>
 
-        <ScanCardSection scanCandidates={scanCandidates} />
-
-        <div className="grid gap-8 lg:grid-cols-[260px_minmax(0,1fr)]">
+        <div className="grid gap-6 lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-8">
           <aside className="lg:sticky lg:top-24 lg:self-start">
             <div className="rounded-4xl border border-current/12 bg-foreground/3 p-5">
               <div className="border-b border-current/10 pb-4">
@@ -217,7 +217,7 @@ export function CollectionBrowserPage() {
                     onClick={() => handleCategoryChange(category)}
                     className={`rounded-2xl px-4 py-3 text-left text-sm font-medium transition-colors ${activeCategory === category
                       ? "bg-foreground text-background"
-                      : "border border-current/10 bg-background/70 text-foreground/72"
+                      : "border border-current/10 bg-background/70 text-foreground hover:bg-foreground hover:text-background"
                       }`}
                   >
                     {category}

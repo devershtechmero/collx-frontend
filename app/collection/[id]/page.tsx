@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Heart, ChevronLeft } from "lucide-react";
 import { notFound, useParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { SiteHeader } from "@/components/shared/layout/site-header";
 import { SiteFooter } from "@/components/sections/home/site-footer";
@@ -17,10 +17,7 @@ import {
 
 export default function CollectionDetailPage() {
   const params = useParams<{ id: string }>();
-  const card = useMemo(
-    () => ALL_CARDS.find((entry) => entry.id === params.id),
-    [params.id],
-  );
+  const card = ALL_CARDS.find((entry) => entry.id === params.id);
   const [isLiked, setIsLiked] = useState(false);
 
   useEffect(() => {
@@ -51,8 +48,8 @@ export default function CollectionDetailPage() {
           Back to collection
         </Link>
 
-        <div className="mt-6 grid gap-8 rounded-[2.25rem] border border-current/12 bg-foreground/[0.03] p-6 sm:p-8 lg:grid-cols-[0.9fr_1.1fr] lg:gap-12">
-          <div className="relative aspect-[4/5] overflow-hidden rounded-[2rem] border border-current/10">
+        <div className="mt-6 grid gap-6 rounded-[1.75rem] border border-current/12 bg-foreground/[0.03] p-4 sm:gap-8 sm:rounded-[2.25rem] sm:p-8 lg:grid-cols-[0.9fr_1.1fr] lg:gap-12">
+          <div className="relative aspect-[4/5] overflow-hidden rounded-[1.5rem] border border-current/10 sm:rounded-[2rem]">
             <Image src={card.image} alt={card.name} fill className="object-cover" />
           </div>
 
@@ -98,14 +95,14 @@ export default function CollectionDetailPage() {
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
               <button
                 type="button"
                 onClick={() => setIsLiked(toggleLikedCard(card))}
                 className={`inline-flex items-center gap-2 rounded-full border px-5 py-3 text-sm font-semibold transition-colors ${
                   isLiked
                     ? "border-foreground bg-foreground text-background"
-                    : "border-current/15"
+                    : "border-current/15 text-foreground hover:bg-foreground hover:text-background"
                 }`}
               >
                 <Heart className="h-4 w-4" fill={isLiked ? "currentColor" : "none"} />
@@ -114,7 +111,7 @@ export default function CollectionDetailPage() {
 
               <Link
                 href="/collection"
-                className="inline-flex items-center justify-center rounded-full border border-current/15 px-5 py-3 text-sm font-semibold transition-colors hover:bg-foreground hover:text-background"
+                className="inline-flex items-center justify-center rounded-full border border-current/15 px-5 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-foreground hover:text-background"
               >
                 Browse more cards
               </Link>
