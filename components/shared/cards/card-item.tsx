@@ -3,7 +3,6 @@
 import { Heart, Bookmark, CheckCircle2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 import { type Card } from "@/lib/mock/cards";
 import {
   COLLECTION_STORAGE_EVENT,
@@ -36,7 +35,6 @@ export function CardItem({
   const [isLiked, setIsLiked] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [isListedForSale, setIsListedForSale] = useState(false);
-  const router = useRouter();
 
   useEffect(() => {
     const syncState = () => {
@@ -55,10 +53,7 @@ export function CardItem({
   const handlePrimaryAction = () => {
     if (onAction) {
       onAction(card);
-      return;
     }
-
-    router.push(`/dashboard/cards/${card.id}`);
   };
 
   return (
