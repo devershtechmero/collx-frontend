@@ -87,15 +87,34 @@ function CollectionCard({ card }: { card: Card }) {
             src={card.image}
             alt={card.name}
             fill
+            sizes="(max-width: 639px) 100vw, (max-width: 1279px) 50vw, 25vw"
             className="object-cover transition-transform duration-500 group-hover:scale-105"
           />
           <div className="absolute left-4 top-4 rounded-full border border-white/20 bg-black/35 px-3 py-1 text-xs font-semibold text-white backdrop-blur-md">
             {card.category}
           </div>
+
+          <button
+            type="button"
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              setIsLiked(toggleLikedCard(card));
+            }}
+            className={`absolute right-4 top-4 inline-flex h-10 w-10 items-center justify-center rounded-full border backdrop-blur-md transition-colors ${
+              isLiked
+                ? "border-red-500 bg-red-500 text-white"
+                : "border-white/20 bg-black/35 text-white hover:bg-red-500 hover:border-red-500"
+            }`}
+            aria-pressed={isLiked}
+            aria-label={isLiked ? `Unlike ${card.name}` : `Like ${card.name}`}
+          >
+            <Heart className="h-4 w-4" fill={isLiked ? "currentColor" : "none"} />
+          </button>
         </div>
       </Link>
 
-      <div className="space-y-4 p-5">
+      <div className="space-y-2 p-5">
         <div className="space-y-2">
           <Link href={`/collection/${card.id}`} className="block">
             <h3 className="truncate text-lg font-semibold tracking-[-0.03em]">
@@ -105,29 +124,6 @@ function CollectionCard({ card }: { card: Card }) {
           <p className="truncate text-sm text-foreground/65">
             {card.description}
           </p>
-        </div>
-
-        <div className="flex items-center justify-between gap-3">
-          <Link
-            href={`/collection/${card.id}`}
-            className="inline-flex items-center justify-center rounded-full border border-current/15 px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-foreground hover:text-background"
-          >
-            View
-          </Link>
-
-          <button
-            type="button"
-            onClick={() => setIsLiked(toggleLikedCard(card))}
-            className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition-colors ${isLiked
-              ? "border-foreground bg-foreground text-background"
-              : "border-current/15 text-foreground hover:bg-foreground hover:text-background"
-              }`}
-            aria-pressed={isLiked}
-            aria-label={isLiked ? `Unlike ${card.name}` : `Like ${card.name}`}
-          >
-            <Heart className="h-4 w-4" fill={isLiked ? "currentColor" : "none"} />
-            Like
-          </button>
         </div>
       </div>
     </article>

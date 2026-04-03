@@ -170,7 +170,7 @@ export function ScanCardSection({ scanCandidates }: ScanCardSectionProps) {
 
             <div className="grid gap-4 overflow-y-auto p-4 sm:gap-5 sm:p-6 lg:grid-cols-[minmax(0,1fr)_320px]">
               <div className="relative overflow-hidden rounded-[1.75rem] border border-current/12 bg-black sm:rounded-4xl">
-                <div className="relative aspect-4/5in-h-[320px] sm:aspect-video sm:min-h-105">
+                <div className="relative aspect-[4/5] min-h-[320px] sm:aspect-video sm:min-h-[420px]">
                   {cameraError ? (
                     <div className="absolute inset-0 flex items-center justify-center px-6 text-center text-sm text-white/80">
                       {cameraError}
@@ -186,7 +186,7 @@ export function ScanCardSection({ scanCandidates }: ScanCardSectionProps) {
                   )}
 
                   <div className="pointer-events-none absolute inset-0 bg-black/30" />
-                  <div className="pointer-events-none absolute left-1/2 top-1/2 aspect-5/7 w-45 max-w-[60vw] -translate-x-1/2 -translate-y-1/2 rounded-[1.4rem] border-2 border-white/90 shadow-[0_0_0_9999px_rgba(0,0,0,0.42)] sm:w-70 sm:rounded-3xl">
+                  <div className="pointer-events-none absolute left-1/2 top-1/2 aspect-[5/7] w-[180px] max-w-[60vw] -translate-x-1/2 -translate-y-1/2 rounded-[1.4rem] border-2 border-white/90 shadow-[0_0_0_9999px_rgba(0,0,0,0.42)] sm:w-[280px] sm:rounded-3xl">
                     <div className="absolute inset-2 rounded-2xl border border-dashed border-white/60 sm:inset-3 sm:rounded-2xl" />
                   </div>
                 </div>
@@ -223,7 +223,13 @@ export function ScanCardSection({ scanCandidates }: ScanCardSectionProps) {
                     </p>
                     <div className="mt-3 flex flex-col gap-3 sm:flex-row">
                       <div className="relative h-24 w-18 shrink-0 overflow-hidden rounded-xl border border-current/10">
-                        <Image src={matchedCard.image} alt={matchedCard.name} fill className="object-cover" />
+                        <Image
+                          src={matchedCard.image}
+                          alt={matchedCard.name}
+                          fill
+                          sizes="72px"
+                          className="object-cover"
+                        />
                       </div>
                       <div className="min-w-0 space-y-2">
                         <p className="text-sm font-semibold sm:truncate">{matchedCard.name}</p>

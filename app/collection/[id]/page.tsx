@@ -50,7 +50,13 @@ export default function CollectionDetailPage() {
 
         <div className="mt-6 grid gap-6 rounded-[1.75rem] border border-current/12 bg-foreground/[0.03] p-4 sm:gap-8 sm:rounded-[2.25rem] sm:p-8 lg:grid-cols-[0.9fr_1.1fr] lg:gap-12">
           <div className="relative aspect-[4/5] overflow-hidden rounded-[1.5rem] border border-current/10 sm:rounded-[2rem]">
-            <Image src={card.image} alt={card.name} fill className="object-cover" />
+            <Image
+              src={card.image}
+              alt={card.name}
+              fill
+              sizes="(max-width: 1023px) 100vw, 45vw"
+              className="object-cover"
+            />
           </div>
 
           <div className="flex flex-col justify-center space-y-6">

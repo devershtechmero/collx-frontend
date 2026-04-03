@@ -74,6 +74,7 @@ export function CardItem({
           src={card.image} 
           alt={card.name}
           fill
+          sizes="(max-width: 767px) 50vw, 25vw"
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
         />
         
