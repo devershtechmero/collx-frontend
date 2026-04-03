@@ -127,14 +127,14 @@ export function ScanCardSection({ scanCandidates }: ScanCardSectionProps) {
   }
 
   return (
-    <div className="rounded-[2.25rem] border border-current/12 bg-foreground/[0.03] p-6 sm:p-8">
+    <div className="rounded-[2.25rem] border border-current/12 bg-foreground/3 p-6 sm:p-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-2">
-          <p className="text-sm font-medium uppercase tracking-[0.22em] text-foreground/58">
+          {/* <p className="text-sm font-medium uppercase tracking-[0.22em] text-foreground/58">
             Card Scanner
-          </p>
+          </p> */}
           <h2 className="text-2xl font-semibold tracking-[-0.05em] sm:text-3xl">
-            Scan your card inside the collection flow.
+            Scan your card inside the collection flow
           </h2>
           <p className="text-sm leading-7 text-foreground/68 sm:text-base">
             Open the camera, align the card in the frame, and simulate a scan
@@ -184,8 +184,8 @@ export function ScanCardSection({ scanCandidates }: ScanCardSectionProps) {
             </div>
 
             <div className="grid gap-5 overflow-y-auto p-5 sm:p-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-              <div className="relative overflow-hidden rounded-[2rem] border border-current/12 bg-black">
-                <div className="relative aspect-video min-h-[360px] sm:min-h-[420px]">
+              <div className="relative overflow-hidden rounded-4xl border border-current/12 bg-black">
+                <div className="relative aspect-video min-h-90 sm:min-h-105">
                   {cameraError ? (
                     <div className="absolute inset-0 flex items-center justify-center px-6 text-center text-sm text-white/80">
                       {cameraError}
@@ -201,13 +201,13 @@ export function ScanCardSection({ scanCandidates }: ScanCardSectionProps) {
                   )}
 
                   <div className="pointer-events-none absolute inset-0 bg-black/30" />
-                  <div className="pointer-events-none absolute left-1/2 top-1/2 aspect-[5/7] w-[240px] max-w-[58vw] -translate-x-1/2 -translate-y-1/2 rounded-[1.5rem] border-2 border-white/90 shadow-[0_0_0_9999px_rgba(0,0,0,0.42)] sm:w-[280px]">
-                    <div className="absolute inset-3 rounded-[1rem] border border-dashed border-white/60" />
+                  <div className="pointer-events-none absolute left-1/2 top-1/2 aspect-5/7 w-60 max-w-[58vw] -translate-x-1/2 -translate-y-1/2 rounded-3xl border-2 border-white/90 shadow-[0_0_0_9999px_rgba(0,0,0,0.42)] sm:w-70">
+                    <div className="absolute inset-3 rounded-2xl border border-dashed border-white/60" />
                   </div>
                 </div>
               </div>
 
-              <div className="space-y-4 rounded-[2rem] border border-current/12 bg-foreground/[0.03] p-5">
+              <div className="space-y-4 rounded-4xl border border-current/12 bg-foreground/3 p-5">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-foreground/54">
                     Scanner
@@ -232,7 +232,7 @@ export function ScanCardSection({ scanCandidates }: ScanCardSectionProps) {
                 </div>
 
                 {matchedCard ? (
-                  <div className="rounded-[1.5rem] border border-current/12 bg-background p-4">
+                  <div className="rounded-3xl border border-current/12 bg-background p-4">
                     <p className="text-xs font-semibold uppercase tracking-[0.18em] text-foreground/52">
                       Match found
                     </p>

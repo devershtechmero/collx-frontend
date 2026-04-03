@@ -203,9 +203,9 @@ export function CollectionBrowserPage() {
           <aside className="lg:sticky lg:top-24 lg:self-start">
             <div className="rounded-4xl border border-current/12 bg-foreground/3 p-5">
               <div className="border-b border-current/10 pb-4">
-                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-foreground/60">
+                {/* <p className="text-sm font-semibold uppercase tracking-[0.18em] text-foreground/60">
                   Filter
-                </p>
+                </p> */}
                 <h2 className="mt-2 text-lg font-semibold">Category</h2>
               </div>
 
