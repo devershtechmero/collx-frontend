@@ -3,20 +3,26 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Heart, Search } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { ScanCardSection } from "@/components/pages/collection/scan-card-section";
 import { SiteHeader } from "@/components/shared/layout/site-header";
 import { SiteFooter } from "@/components/sections/home/site-footer";
+import { getCollectionData, searchCollectionCards } from "@/lib/api/cards";
+import {
+  extractCardList,
+  extractPaginationMeta,
+  getCardCategories,
+  type Card,
+} from "@/lib/cards";
 import {
   COLLECTION_STORAGE_EVENT,
   isCardLiked,
   toggleLikedCard,
 } from "@/lib/store/collection-store";
-import { ALL_CARDS, CATEGORIES, type Card } from "@/lib/mock/cards";
 
 const ITEMS_PER_PAGE = 12;
-
+ 
 function Pagination({
   currentPage,
   totalPages,
@@ -28,7 +34,12 @@ function Pagination({
 }) {
   if (totalPages <= 1) return null;
 
-  const pages = Array.from({ length: totalPages }, (_, index) => index + 1);
+  const groupStart = Math.floor((currentPage - 1) / 10) * 10 + 1;
+  const groupEnd = Math.min(totalPages, groupStart + 9);
+  const pages = Array.from(
+    { length: groupEnd - groupStart + 1 },
+    (_, index) => groupStart + index,
+  );
 
   return (
     <div className="flex flex-wrap items-center justify-center gap-3 border-t border-current/10 pt-8">
@@ -134,10 +145,11 @@ export function CollectionBrowserPage() {
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<string>("All");
   const [currentPage, setCurrentPage] = useState(1);
-
-  function handlePageChange(page: number) {
-    setCurrentPage(Math.max(1, Math.min(page, totalPages)));
-  }
+  const [cards, setCards] = useState<Card[]>([]);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   function handleSearchChange(event: React.ChangeEvent<HTMLInputElement>) {
     setSearch(event.target.value);
@@ -149,9 +161,54 @@ export function CollectionBrowserPage() {
     setCurrentPage(1);
   }
 
+  useEffect(() => {
+    let isCancelled = false;
+    const trimmedQuery = search.trim();
+
+    const timer = window.setTimeout(async () => {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const payload = trimmedQuery
+          ? await searchCollectionCards(trimmedQuery, ITEMS_PER_PAGE, currentPage)
+          : await getCollectionData(ITEMS_PER_PAGE, currentPage);
+
+        if (isCancelled) {
+          return;
+        }
+
+        setCards(extractCardList(payload));
+        const meta = extractPaginationMeta(payload);
+        setTotalPages(meta.pages);
+        setTotalCount(meta.count);
+      } catch (fetchError) {
+        if (isCancelled) {
+          return;
+        }
+
+        setCards([]);
+        setTotalPages(1);
+        setTotalCount(0);
+        setError(fetchError instanceof Error ? fetchError.message : "Failed to load cards.");
+      } finally {
+        if (!isCancelled) {
+          setIsLoading(false);
+        }
+      }
+    }, trimmedQuery ? 300 : 0);
+
+    return () => {
+      isCancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [currentPage, search]);
+
   const query = search.trim().toLowerCase();
 
-  const filteredCards = ALL_CARDS.filter((card) => {
+  const categories = useMemo(() => getCardCategories(cards), [cards]);
+
+  const filteredCards = cards.filter((card) => {
     const matchesCategory =
       activeCategory === "All" || card.category === activeCategory;
     const matchesSearch =
@@ -163,17 +220,13 @@ export function CollectionBrowserPage() {
 
     return matchesCategory && matchesSearch;
   });
-
-  const totalPages = Math.max(1, Math.ceil(filteredCards.length / ITEMS_PER_PAGE));
-
   const resolvedCurrentPage = Math.min(currentPage, totalPages);
 
-  const paginatedCards = filteredCards.slice(
-    (resolvedCurrentPage - 1) * ITEMS_PER_PAGE,
-    resolvedCurrentPage * ITEMS_PER_PAGE,
-  );
+  function handlePageChange(page: number) {
+    setCurrentPage(Math.max(1, Math.min(page, totalPages)));
+  }
 
-  const scanCandidates = filteredCards.length > 0 ? filteredCards : ALL_CARDS;
+  const scanCandidates = filteredCards.length > 0 ? filteredCards : cards;
 
   return (
     <main className="min-h-screen">
@@ -206,7 +259,7 @@ export function CollectionBrowserPage() {
               </div>
 
               <div className="mt-4 flex flex-col gap-2">
-                {["All", ...CATEGORIES].map((category) => (
+                {["All", ...categories].map((category) => (
                   <button
                     key={category}
                     type="button"
@@ -226,20 +279,37 @@ export function CollectionBrowserPage() {
           <div className="space-y-8">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm text-foreground/62">
-                Showing {paginatedCards.length} of {filteredCards.length} cards
+                Showing {filteredCards.length} of {totalCount.toLocaleString()} cards
               </p>
               <p className="text-sm text-foreground/62">
                 Page {resolvedCurrentPage} of {totalPages}
               </p>
             </div>
 
-            <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-              {paginatedCards.map((card) => (
-                <CollectionCard key={card.id} card={card} />
-              ))}
-            </div>
+            {isLoading ? (
+              <div className="rounded-4xl border border-current/12 bg-foreground/3 px-6 py-16 text-center">
+                <h3 className="text-xl font-semibold">Loading cards</h3>
+                <p className="mt-2 text-sm text-foreground/62">
+                  Pulling the latest collection data from the backend.
+                </p>
+              </div>
+            ) : null}
 
-            {paginatedCards.length === 0 ? (
+            {error ? (
+              <div className="rounded-4xl border border-rose-500/20 bg-rose-500/6 px-6 py-5 text-sm text-rose-700">
+                {error}
+              </div>
+            ) : null}
+
+            {!isLoading ? (
+              <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+                {filteredCards.map((card) => (
+                  <CollectionCard key={card.id} card={card} />
+                ))}
+              </div>
+            ) : null}
+
+            {!isLoading && filteredCards.length === 0 ? (
               <div className="rounded-4xl border border-dashed border-current/15 px-6 py-16 text-center">
                 <h3 className="text-xl font-semibold">No cards found</h3>
                 <p className="mt-2 text-sm text-foreground/62">
@@ -248,11 +318,13 @@ export function CollectionBrowserPage() {
               </div>
             ) : null}
 
-            <Pagination
-              currentPage={resolvedCurrentPage}
-              totalPages={totalPages}
-              onChange={handlePageChange}
-            />
+            {!isLoading ? (
+              <Pagination
+                currentPage={resolvedCurrentPage}
+                totalPages={totalPages}
+                onChange={handlePageChange}
+              />
+            ) : null}
           </div>
         </div>
       </section>

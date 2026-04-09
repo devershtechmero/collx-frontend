@@ -1,4 +1,4 @@
-import { MY_COLLECTION, type Card } from "@/lib/mock/cards";
+import { type Card } from "@/lib/cards";
 
 const STORAGE_KEY = "collx_user_collection";
 const SAVED_STORAGE_KEY = "collx_saved_cards";
@@ -39,7 +39,7 @@ const ensureUserCollection = () => {
   if (typeof window === "undefined") return;
   const stored = localStorage.getItem(STORAGE_KEY);
   if (!stored) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(MY_COLLECTION.map(normalizeCard)));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify([]));
   }
 };
 

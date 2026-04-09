@@ -3,7 +3,7 @@
 import { Heart, Bookmark, CheckCircle2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { type Card } from "@/lib/mock/cards";
+import { type Card } from "@/lib/cards";
 import {
   COLLECTION_STORAGE_EVENT,
   isCardForSale,

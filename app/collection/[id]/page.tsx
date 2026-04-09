@@ -3,12 +3,20 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Heart, ChevronLeft, ChevronRight } from "lucide-react";
-import { notFound, useParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useParams } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { SiteHeader } from "@/components/shared/layout/site-header";
 import { SiteFooter } from "@/components/sections/home/site-footer";
-import { ALL_CARDS, TRENDING_CARDS, type Card } from "@/lib/mock/cards";
+import { getCollectionCardById, getCollectionData } from "@/lib/api/cards";
+import {
+  extractCardList,
+  extractSingleCard,
+  getPrimaryPrice,
+  getTrendScore,
+  pickDeterministicRandomCard,
+  type Card,
+} from "@/lib/cards";
 import {
   COLLECTION_STORAGE_EVENT,
   isCardLiked,
@@ -21,15 +29,6 @@ function formatCurrency(value: number) {
     currency: "USD",
     maximumFractionDigits: 2,
   }).format(value);
-}
-
-function getPrimaryPrice(card: Card) {
-  if (typeof card.price === "number" && !Number.isNaN(card.price)) {
-    return card.price;
-  }
-
-  const fallback = card.prices?.find((entry) => entry.grade === "Raw") ?? card.prices?.[0];
-  return fallback ? Number(fallback.price) : 0;
 }
 
 function getGainBadge(gain?: number) {
@@ -82,6 +81,7 @@ function RecommendationCard({ card }: { card: Card }) {
             fill
             sizes="(max-width: 639px) 100vw, (max-width: 1279px) 50vw, 25vw"
             className="object-cover transition-transform duration-500 group-hover:scale-105"
+            unoptimized
           />
           <div className="absolute left-4 top-4 rounded-full border border-white/20 bg-black/35 px-3 py-1 text-xs font-semibold text-white backdrop-blur-md">
             {card.category}
@@ -182,7 +182,7 @@ function RecommendationSection({
         {cards.map((entry) => (
           <div
             key={`${title}-${entry.id}`}
-            className="min-w-65wmax-w-65in-w-[300px] sm:max-w-75"
+            className="min-w-[300px] max-w-[300px] sm:max-w-[340px]"
           >
             <RecommendationCard card={entry} />
           </div>
@@ -192,10 +192,63 @@ function RecommendationSection({
   );
 }
 
+function EmptyState({ message }: { message: string }) {
+  return (
+    <div className="rounded-[1.75rem] border border-current/12 bg-foreground/3 px-6 py-16 text-center">
+      <h2 className="text-2xl font-semibold">Card unavailable</h2>
+      <p className="mt-3 text-sm text-foreground/62">{message}</p>
+    </div>
+  );
+}
+
 export default function CollectionDetailPage() {
   const params = useParams<{ id: string }>();
-  const card = ALL_CARDS.find((entry) => entry.id === params.id);
+  const [card, setCard] = useState<Card | null>(null);
+  const [catalogCards, setCatalogCards] = useState<Card[]>([]);
   const [isLiked, setIsLiked] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    async function loadPageData() {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const [detailPayload, catalogPayload] = await Promise.all([
+          getCollectionCardById(params.id),
+          getCollectionData(200, 1),
+        ]);
+
+        if (isCancelled) {
+          return;
+        }
+
+        setCard(extractSingleCard(detailPayload));
+        setCatalogCards(extractCardList(catalogPayload));
+      } catch (fetchError) {
+        if (isCancelled) {
+          return;
+        }
+
+        setCard(null);
+        setCatalogCards([]);
+        setError(fetchError instanceof Error ? fetchError.message : "Failed to load card.");
+      } finally {
+        if (!isCancelled) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    loadPageData();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [params.id]);
 
   useEffect(() => {
     if (!card) return;
@@ -208,22 +261,88 @@ export default function CollectionDetailPage() {
     return () => window.removeEventListener(COLLECTION_STORAGE_EVENT, syncLikedState);
   }, [card]);
 
-  if (!card) {
-    notFound();
+  const allCards = useMemo(() => {
+    const merged = card ? [card, ...catalogCards] : [...catalogCards];
+    const seen = new Set<string>();
+
+    return merged.filter((entry) => {
+      if (seen.has(entry.id)) {
+        return false;
+      }
+
+      seen.add(entry.id);
+      return true;
+    });
+  }, [card, catalogCards]);
+
+  const trendingCards = useMemo(() => {
+    if (!card) {
+      return [];
+    }
+
+    return allCards
+      .filter((entry) => entry.id !== card.id)
+      .sort((left, right) => getTrendScore(right) - getTrendScore(left))
+      .slice(0, 10);
+  }, [allCards, card]);
+
+  const sameCategoryCards = useMemo(() => {
+    if (!card) {
+      return [];
+    }
+
+    return allCards
+      .filter((entry) => entry.id !== card.id && entry.category === card.category)
+      .slice(0, 10);
+  }, [allCards, card]);
+
+  const randomSuggestion = useMemo(() => {
+    if (!card) {
+      return null;
+    }
+
+    return pickDeterministicRandomCard(
+      allCards.filter((entry) => entry.id !== card.id),
+      card.id,
+    );
+  }, [allCards, card]);
+
+  if (isLoading) {
+    return (
+      <main className="min-h-screen">
+        <SiteHeader />
+        <section className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-4 py-8 sm:px-6 lg:px-12 lg:py-10">
+          <EmptyState message="Loading card details from the backend." />
+        </section>
+        <SiteFooter />
+      </main>
+    );
   }
 
-  const trendingCards = TRENDING_CARDS.filter((entry) => entry.id !== card.id).slice(0, 10);
-  const relatedCards = ALL_CARDS.filter(
-    (entry) =>
-      entry.id !== card.id &&
-      (entry.player === card.player ||
-        entry.set === card.set ||
-        entry.variant === card.variant ||
-        entry.rarity === card.rarity),
-  ).slice(0, 10);
-  const sameCategoryCards = ALL_CARDS.filter(
-    (entry) => entry.id !== card.id && entry.category === card.category,
-  ).slice(0, 10);
+  if (error) {
+    return (
+      <main className="min-h-screen">
+        <SiteHeader />
+        <section className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-4 py-8 sm:px-6 lg:px-12 lg:py-10">
+          <EmptyState message={error} />
+        </section>
+        <SiteFooter />
+      </main>
+    );
+  }
+
+  if (!card) {
+    return (
+      <main className="min-h-screen">
+        <SiteHeader />
+        <section className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-4 py-8 sm:px-6 lg:px-12 lg:py-10">
+          <EmptyState message="We could not find this card in the backend response." />
+        </section>
+        <SiteFooter />
+      </main>
+    );
+  }
+
   const gainBadge = getGainBadge(card.gain);
   const detailStats = [
     { label: "Player", value: card.player ?? "Unknown" },
@@ -255,6 +374,7 @@ export default function CollectionDetailPage() {
               fill
               sizes="(max-width: 1023px) 100vw, 45vw"
               className="object-cover"
+              unoptimized
             />
           </div>
 
@@ -334,21 +454,23 @@ export default function CollectionDetailPage() {
                 </p>
               </div>
 
-              <div className="mt-5 grid gap-3 sm:grid-cols-3">
-                {card.prices?.map((entry) => (
-                  <div
-                    key={entry.grade}
-                    className="rounded-3xl border border-current/10 bg-foreground/3 p-4"
-                  >
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-foreground/52">
-                      {entry.grade}
-                    </p>
-                    <p className="mt-2 text-lg font-semibold">
-                      {formatCurrency(Number(entry.price))}
-                    </p>
-                  </div>
-                ))}
-              </div>
+              {card.prices?.length ? (
+                <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                  {card.prices.map((entry) => (
+                    <div
+                      key={entry.grade}
+                      className="rounded-3xl border border-current/10 bg-foreground/3 p-4"
+                    >
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-foreground/52">
+                        {entry.grade}
+                      </p>
+                      <p className="mt-2 text-lg font-semibold">
+                        {formatCurrency(Number(entry.price))}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
             </div>
 
             <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
@@ -364,33 +486,26 @@ export default function CollectionDetailPage() {
                 <Heart className="h-4 w-4" fill={isLiked ? "currentColor" : "none"} />
                 {isLiked ? "Liked" : "Like this card"}
               </button>
-
-              {/* <Link
-                href="/collection"
-                className="inline-flex items-center justify-center rounded-full border border-current/15 px-5 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-foreground hover:text-background"
-              >
-                Browse more cards
-              </Link> */}
             </div>
           </div>
         </div>
 
         <RecommendationSection
           title="Trending cards"
-          description="Popular cards collectors are checking right now."
+          description="Ranked from the strongest selling cards using recent sales, visible price, and trend movement."
           cards={trendingCards}
         />
 
         <RecommendationSection
-          title="Related cards"
-          description="More cards connected by player, set, or variant."
-          cards={relatedCards}
+          title="Explore same category"
+          description={`Keep browsing more ${card.category.toLowerCase()} cards from this backend dataset.`}
+          cards={sameCategoryCards}
         />
 
         <RecommendationSection
-          title="Explore same category"
-          description={`Keep browsing more ${card.category.toLowerCase()} cards from the collection.`}
-          cards={sameCategoryCards}
+          title="Random suggestion"
+          description="One more card you might want to check while you are here."
+          cards={randomSuggestion ? [randomSuggestion] : []}
         />
       </section>
 

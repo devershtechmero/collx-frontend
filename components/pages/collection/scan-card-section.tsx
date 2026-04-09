@@ -4,7 +4,7 @@ import Image from "next/image";
 import { Camera, Check, LoaderCircle, Send, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { ALL_CARDS, type Card } from "@/lib/mock/cards";
+import { type Card } from "@/lib/cards";
 import { addCapturedCard } from "@/lib/store/collection-store";
 
 const SCAN_DURATION_MS = 6000;
@@ -28,10 +28,7 @@ export function ScanCardSection({ scanCandidates }: ScanCardSectionProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
-  const resolvedCandidates = useMemo(
-    () => (scanCandidates.length > 0 ? scanCandidates : ALL_CARDS),
-    [scanCandidates],
-  );
+  const resolvedCandidates = useMemo(() => scanCandidates, [scanCandidates]);
 
   useEffect(() => {
     return () => {
@@ -108,11 +105,10 @@ export function ScanCardSection({ scanCandidates }: ScanCardSectionProps) {
     }
 
     const nextCard =
-      resolvedCandidates[Math.floor(Math.random() * resolvedCandidates.length)] ??
-      ALL_CARDS[0];
+      resolvedCandidates[Math.floor(Math.random() * resolvedCandidates.length)];
     const video = videoRef.current;
 
-    if (!video || video.videoWidth === 0 || video.videoHeight === 0) {
+    if (!nextCard || !video || video.videoWidth === 0 || video.videoHeight === 0) {
       return;
     }
 

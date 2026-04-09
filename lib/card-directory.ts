@@ -1,6 +1,6 @@
 "use client";
 
-import { TRENDING_CARDS, type Card } from "@/lib/mock/cards";
+import { type Card } from "@/lib/cards";
 import { getCapturedCards, getForSaleCards } from "@/lib/store/collection-store";
 
 export interface CardOwner {
@@ -45,8 +45,7 @@ export const getCardOwner = (cardId: string): CardOwner => {
 
 export const getCardMarketplaceFeed = (): Card[] => {
   const listedCards = getForSaleCards();
-  const listedIds = new Set(listedCards.map((card) => card.id));
-  return [...listedCards, ...TRENDING_CARDS.filter((card) => !listedIds.has(card.id))];
+  return [...listedCards];
 };
 
 export const getCardCatalog = (): Card[] => {
@@ -62,4 +61,3 @@ export const getCardCatalog = (): Card[] => {
 
 export const getCardById = (cardId: string): Card | null =>
   getCardCatalog().find((card) => card.id === cardId) ?? null;
-
