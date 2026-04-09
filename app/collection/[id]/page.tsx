@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Heart, ChevronLeft, ChevronRight } from "lucide-react";
+import { Heart, ChevronLeft, ChevronRight, LoaderCircle } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -182,7 +182,7 @@ function RecommendationSection({
         {cards.map((entry) => (
           <div
             key={`${title}-${entry.id}`}
-            className="min-w-[300px] max-w-[300px] sm:max-w-[340px]"
+            className="min-w-75 max-w-75 sm:max-w-85"
           >
             <RecommendationCard card={entry} />
           </div>
@@ -197,6 +197,14 @@ function EmptyState({ message }: { message: string }) {
     <div className="rounded-[1.75rem] border border-current/12 bg-foreground/3 px-6 py-16 text-center">
       <h2 className="text-2xl font-semibold">Card unavailable</h2>
       <p className="mt-3 text-sm text-foreground/62">{message}</p>
+    </div>
+  );
+}
+
+function LoadingState() {
+  return (
+    <div className="flex min-h-80 items-center justify-center rounded-[1.75rem] border border-current/12 bg-foreground/3">
+      <LoaderCircle className="h-10 w-10 animate-spin text-foreground/55" />
     </div>
   );
 }
@@ -312,7 +320,7 @@ export default function CollectionDetailPage() {
       <main className="min-h-screen">
         <SiteHeader />
         <section className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-4 py-8 sm:px-6 lg:px-12 lg:py-10">
-          <EmptyState message="Loading card details from the backend." />
+          <LoadingState />
         </section>
         <SiteFooter />
       </main>
@@ -367,13 +375,15 @@ export default function CollectionDetailPage() {
         </Link>
 
         <div className="mt-6 grid gap-6 rounded-[1.75rem] border border-current/12 bg-foreground/3 p-4 sm:gap-8 sm:rounded-[2.25rem] sm:p-8 lg:grid-cols-[0.9fr_1.1fr] lg:gap-12">
-          <div className="relative aspect-4/5 overflow-hidden rounded-3xl border border-current/10 sm:rounded-4xl">
+          <div className="relative aspect-4/5 overflow-hidden rounded-3xl border border-current/10 bg-background/80 p-4 sm:rounded-4xl sm:p-6">
             <Image
               src={card.image}
               alt={card.name}
               fill
               sizes="(max-width: 1023px) 100vw, 45vw"
-              className="object-cover"
+              className="object-contain p-2 sm:p-3"
+              loading="eager"
+              priority
               unoptimized
             />
           </div>
@@ -439,7 +449,7 @@ export default function CollectionDetailPage() {
               ))}
             </div>
 
-            <div className="rounded-[1.5rem] border border-current/10 bg-background/80 p-5">
+            <div className="rounded-3xl border border-current/10 bg-background/80 p-5">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-foreground/52">
@@ -456,9 +466,9 @@ export default function CollectionDetailPage() {
 
               {card.prices?.length ? (
                 <div className="mt-5 grid gap-3 sm:grid-cols-3">
-                  {card.prices.map((entry) => (
+                  {card.prices.map((entry, index) => (
                     <div
-                      key={entry.grade}
+                      key={`${entry.grade}-${entry.price}-${index}`}
                       className="rounded-3xl border border-current/10 bg-foreground/3 p-4"
                     >
                       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-foreground/52">

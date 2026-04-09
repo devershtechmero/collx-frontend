@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Heart, Search } from "lucide-react";
+import { Heart, LoaderCircle, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { ScanCardSection } from "@/components/pages/collection/scan-card-section";
@@ -138,6 +138,14 @@ function CollectionCard({ card }: { card: Card }) {
         </div>
       </div>
     </article>
+  );
+}
+
+function LoadingGrid() {
+  return (
+    <div className="flex min-h-90 items-center justify-center rounded-4xl border border-current/12 bg-foreground/3">
+      <LoaderCircle className="h-10 w-10 animate-spin text-foreground/55" />
+    </div>
   );
 }
 
@@ -287,12 +295,7 @@ export function CollectionBrowserPage() {
             </div>
 
             {isLoading ? (
-              <div className="rounded-4xl border border-current/12 bg-foreground/3 px-6 py-16 text-center">
-                <h3 className="text-xl font-semibold">Loading cards</h3>
-                <p className="mt-2 text-sm text-foreground/62">
-                  Pulling the latest collection data from the backend.
-                </p>
-              </div>
+              <LoadingGrid />
             ) : null}
 
             {error ? (
