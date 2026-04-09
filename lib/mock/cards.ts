@@ -7,8 +7,21 @@ export interface Card {
   dateAdded?: string;
   rank?: number;
   category: string;
+  category_group?: string;
   player?: string;
   set?: string;
+  set_type?: string;
+  number?: string;
+  variant?: string;
+  rookie?: boolean;
+  gain?: number;
+  card_id?: string;
+  prices?: Array<{
+    grade: string;
+    price: string;
+  }>;
+  "30 Day Sales"?: number;
+  "7 Day Sales"?: number;
   rarity?: string;
   change?: string;
   isTrending?: boolean;
@@ -103,6 +116,42 @@ export const ALL_CARDS: Card[] = Array.from({ length: 120 }).map((_, index) => {
     change: `${index % 2 === 0 ? "+" : "-"}${((index % 9) + 1) * 1.3}%`,
     isTrending: index < 12,
   };
+});
+
+ALL_CARDS.unshift({
+  id: "1624854440747x107764130355085310",
+  card_id: "1624854440747x107764130355085310",
+  name: "Bo Jackson 1990 Score Baseball #697",
+  player: "Bo Jackson",
+  set: "1990 Score Baseball",
+  number: "697",
+  variant: "Base",
+  image: "https://s3.amazonaws.com/appforest_uf/f1624854644812x880633553774479600/1990-Bo-Jackson-score-697.jpg",
+  "30 Day Sales": 582,
+  "7 Day Sales": 144,
+  description: "Bo Jackson 1990 Score Baseball",
+  category: "Baseball",
+  category_group: "Sports Cards",
+  set_type: "Score Baseball",
+  rookie: false,
+  gain: -0.03,
+  price: 13.21,
+  prices: [
+    {
+      grade: "PSA 10",
+      price: "486.5225",
+    },
+    {
+      grade: "PSA 9",
+      price: "69.99",
+    },
+    {
+      grade: "Raw",
+      price: "13.21",
+    },
+  ],
+  rarity: "Base",
+  isTrending: true,
 });
 
 export const TRENDING_CARDS: Card[] = ALL_CARDS.filter((card) => card.isTrending).slice(0, 10);

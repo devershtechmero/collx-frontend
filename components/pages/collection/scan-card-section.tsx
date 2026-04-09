@@ -235,9 +235,9 @@ export function ScanCardSection({ scanCandidates }: ScanCardSectionProps) {
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(148,163,184,0.18),transparent_34%),radial-gradient(circle_at_bottom,rgba(15,23,42,0.12),transparent_30%)]" />
 
             <div className="relative flex flex-1 items-center justify-center">
-              <div className="relative aspect-[5/7] w-full max-w-[320px] sm:max-w-[360px]">
-                <div className="absolute inset-0 rounded-[2rem] border border-current/15 bg-foreground/[0.03] shadow-[0_35px_120px_-45px_rgba(15,23,42,0.45)] backdrop-blur-sm" />
-                <div className="absolute inset-[14px] overflow-hidden rounded-[1.5rem] border border-current/12 bg-gradient-to-br from-foreground/[0.06] via-transparent to-foreground/[0.03]">
+              <div className="relative aspect-5/7 w-full max-w-[320px] sm:max-w-90">
+                <div className="absolute inset-0 rounded-4xl border border-current/15 bg-foreground/3 shadow-[0_35px_120px_-45px_rgba(15,23,42,0.45)] backdrop-blur-sm" />
+                <div className="absolute inset-3.5 overflow-hidden rounded-3xl border border-current/12 bg-linear-to-br from-foreground/6 via-transparent to-foreground/3">
                   {capturedImage ? (
                     <Image
                       src={capturedImage}
@@ -279,23 +279,23 @@ export function ScanCardSection({ scanCandidates }: ScanCardSectionProps) {
                   {isProcessing ? (
                     <>
                       <div className="absolute inset-4 rounded-[1.15rem] border border-emerald-300/40" />
-                      <div className="absolute left-0 top-0 h-12 w-12 rounded-tl-[1.5rem] border-l-4 border-t-4 border-emerald-300/95" />
-                      <div className="absolute right-0 top-0 h-12 w-12 rounded-tr-[1.5rem] border-r-4 border-t-4 border-emerald-300/95" />
-                      <div className="absolute bottom-0 left-0 h-12 w-12 rounded-bl-[1.5rem] border-b-4 border-l-4 border-emerald-300/95" />
-                      <div className="absolute bottom-0 right-0 h-12 w-12 rounded-br-[1.5rem] border-b-4 border-r-4 border-emerald-300/95" />
+                      <div className="absolute left-0 top-0 h-12 w-12 rounded-tl-3xl border-l-4 border-t-4 border-emerald-300/95" />
+                      <div className="absolute right-0 top-0 h-12 w-12 rounded-tr-3xl border-r-4 border-t-4 border-emerald-300/95" />
+                      <div className="absolute bottom-0 left-0 h-12 w-12 rounded-bl-3xl border-b-4 border-l-4 border-emerald-300/95" />
+                      <div className="absolute bottom-0 right-0 h-12 w-12 rounded-br-3xl border-b-4 border-r-4 border-emerald-300/95" />
                       <div className="absolute inset-0 animate-pulse bg-emerald-300/8" />
                       <div className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-emerald-300/35" />
                       <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-emerald-300/28" />
                     </>
                   ) : null}
                   <div
-                    className={`absolute inset-x-0 h-24 bg-gradient-to-b from-emerald-300/0 via-emerald-300/80 to-emerald-300/0 blur-md transition-transform duration-500 ${
+                    className={`absolute inset-x-0 h-24 bg-linear-to-b from-emerald-300/0 via-emerald-300/80 to-emerald-300/0 blur-md transition-transform duration-500 ${
                       isProcessing ? "translate-y-[320%]" : "-translate-y-full"
                     }`}
                   />
                   <div
-                    className={`absolute left-0 top-0 h-full w-20 bg-gradient-to-r from-transparent via-white/18 to-transparent blur-xl transition-transform duration-700 ${
-                      isProcessing ? "translate-x-[320px] sm:translate-x-[360px]" : "-translate-x-full"
+                    className={`absolute left-0 top-0 h-full w-20 bg-linear-to-rrom-transparent via-white/18 to-transparent blur-xl transition-transform duration-700 ${
+                      isProcessing ? "translate-x-80 sm:translate-x-90" : "-translate-x-full"
                     }`}
                   />
 

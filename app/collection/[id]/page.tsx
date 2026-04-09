@@ -15,6 +15,51 @@ import {
   toggleLikedCard,
 } from "@/lib/store/collection-store";
 
+function formatCurrency(value: number) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 2,
+  }).format(value);
+}
+
+function getPrimaryPrice(card: Card) {
+  if (typeof card.price === "number" && !Number.isNaN(card.price)) {
+    return card.price;
+  }
+
+  const fallback = card.prices?.find((entry) => entry.grade === "Raw") ?? card.prices?.[0];
+  return fallback ? Number(fallback.price) : 0;
+}
+
+function getGainBadge(gain?: number) {
+  if (typeof gain !== "number") {
+    return {
+      label: "No trend",
+      className: "border-slate-400/20 bg-slate-500/10 text-slate-600",
+    };
+  }
+
+  if (gain > 0) {
+    return {
+      label: `+${(gain * 100).toFixed(2)}%`,
+      className: "border-emerald-500/20 bg-emerald-500/12 text-emerald-600",
+    };
+  }
+
+  if (gain < 0) {
+    return {
+      label: `${(gain * 100).toFixed(2)}%`,
+      className: "border-rose-500/20 bg-rose-500/12 text-rose-600",
+    };
+  }
+
+  return {
+    label: "0.00%",
+    className: "border-slate-400/20 bg-slate-500/10 text-slate-600",
+  };
+}
+
 function RecommendationCard({ card }: { card: Card }) {
   const [isLiked, setIsLiked] = useState(false);
 
@@ -171,11 +216,23 @@ export default function CollectionDetailPage() {
   const relatedCards = ALL_CARDS.filter(
     (entry) =>
       entry.id !== card.id &&
-      (entry.player === card.player || entry.set === card.set || entry.rarity === card.rarity),
+      (entry.player === card.player ||
+        entry.set === card.set ||
+        entry.variant === card.variant ||
+        entry.rarity === card.rarity),
   ).slice(0, 10);
   const sameCategoryCards = ALL_CARDS.filter(
     (entry) => entry.id !== card.id && entry.category === card.category,
   ).slice(0, 10);
+  const gainBadge = getGainBadge(card.gain);
+  const detailStats = [
+    { label: "Player", value: card.player ?? "Unknown" },
+    { label: "Set", value: card.set ?? "Unknown" },
+    { label: "Card Number", value: card.number ?? "N/A" },
+    { label: "Variant", value: card.variant ?? card.rarity ?? "N/A" },
+    { label: "30 Day Sales", value: card["30 Day Sales"]?.toLocaleString() ?? "0" },
+    { label: "7 Day Sales", value: card["7 Day Sales"]?.toLocaleString() ?? "0" },
+  ];
 
   return (
     <main className="min-h-screen">
@@ -202,44 +259,95 @@ export default function CollectionDetailPage() {
           </div>
 
           <div className="flex flex-col justify-center space-y-6">
-            <div className="space-y-3">
-              <p className="text-sm font-medium uppercase tracking-[0.2em] text-foreground/58">
-                {card.category}
-              </p>
-              <h1 className="text-3xl font-semibold tracking-[-0.05em] sm:text-4xl">
-                {card.name}
-              </h1>
+            <div className="space-y-5">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div className="space-y-3">
+                  <p className="text-sm font-medium uppercase tracking-[0.2em] text-foreground/58">
+                    {card.category}
+                    {card.category_group ? ` • ${card.category_group}` : ""}
+                  </p>
+                  <h1 className="text-3xl font-semibold tracking-[-0.05em] sm:text-4xl">
+                    {card.player ?? card.name}
+                  </h1>
+                  <p className="text-base font-medium text-foreground/70 sm:text-lg">
+                    {card.set}
+                    {card.number ? ` • #${card.number}` : ""}
+                  </p>
+                </div>
+
+                <div
+                  className={`inline-flex w-fit items-center rounded-full border px-4 py-2 text-sm font-semibold ${gainBadge.className}`}
+                >
+                  {gainBadge.label}
+                </div>
+              </div>
+
               <p className="max-w-2xl text-sm leading-7 text-foreground/72 sm:text-base">
-                {card.description} This detail view gives you a clean read on the
-                card, its set, rarity, and quick interaction options for building
-                out a much larger collection browser.
+                {card.description}
               </p>
+
+              <div className="flex flex-wrap gap-3 text-sm text-foreground/66">
+                {card.set_type ? (
+                  <span className="rounded-full border border-current/10 bg-background/70 px-3 py-1.5">
+                    Set Type: {card.set_type}
+                  </span>
+                ) : null}
+                {typeof card.rookie === "boolean" ? (
+                  <span className="rounded-full border border-current/10 bg-background/70 px-3 py-1.5">
+                    Rookie: {card.rookie ? "Yes" : "No"}
+                  </span>
+                ) : null}
+                {card.card_id ? (
+                  <span className="rounded-full border border-current/10 bg-background/70 px-3 py-1.5">
+                    Card ID: {card.card_id}
+                  </span>
+                ) : null}
+              </div>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="rounded-3xl border border-current/10 bg-background/70 p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-foreground/52">
-                  Player
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {detailStats.map((item) => (
+                <div
+                  key={item.label}
+                  className="rounded-3xl border border-current/10 bg-background/70 p-4"
+                >
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-foreground/52">
+                    {item.label}
+                  </p>
+                  <p className="mt-2 text-lg font-semibold">{item.value}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="rounded-[1.5rem] border border-current/10 bg-background/80 p-5">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-foreground/52">
+                    Market Prices
+                  </p>
+                  <p className="mt-2 text-2xl font-semibold">
+                    {formatCurrency(getPrimaryPrice(card))}
+                  </p>
+                </div>
+                <p className="text-sm text-foreground/62">
+                  Latest visible price by grade for this card.
                 </p>
-                <p className="mt-2 text-lg font-semibold">{card.player}</p>
               </div>
-              <div className="rounded-3xl border border-current/10 bg-background/70 p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-foreground/52">
-                  Set
-                </p>
-                <p className="mt-2 text-lg font-semibold">{card.set}</p>
-              </div>
-              <div className="rounded-3xl border border-current/10 bg-background/70 p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-foreground/52">
-                  Rarity
-                </p>
-                <p className="mt-2 text-lg font-semibold">{card.rarity}</p>
-              </div>
-              <div className="rounded-3xl border border-current/10 bg-background/70 p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-foreground/52">
-                  Price
-                </p>
-                <p className="mt-2 text-lg font-semibold">${card.price.toLocaleString()}</p>
+
+              <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                {card.prices?.map((entry) => (
+                  <div
+                    key={entry.grade}
+                    className="rounded-3xl border border-current/10 bg-foreground/3 p-4"
+                  >
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-foreground/52">
+                      {entry.grade}
+                    </p>
+                    <p className="mt-2 text-lg font-semibold">
+                      {formatCurrency(Number(entry.price))}
+                    </p>
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -275,7 +383,7 @@ export default function CollectionDetailPage() {
 
         <RecommendationSection
           title="Related cards"
-          description="More cards connected by player, set, or rarity."
+          description="More cards connected by player, set, or variant."
           cards={relatedCards}
         />
 
