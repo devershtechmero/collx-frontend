@@ -1,13 +1,14 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
-import { Camera, LoaderCircle, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { Camera, Check, LoaderCircle, Send, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { ALL_CARDS, type Card } from "@/lib/mock/cards";
+import { addCapturedCard } from "@/lib/store/collection-store";
 
-const SCAN_DURATION_MS = 5000;
+const SCAN_DURATION_MS = 6000;
+const COMPLETION_NOTICE_MS = 1200;
 
 interface ScanCardSectionProps {
   scanCandidates: Card[];
@@ -15,19 +16,33 @@ interface ScanCardSectionProps {
 
 export function ScanCardSection({ scanCandidates }: ScanCardSectionProps) {
   const [isScannerOpen, setIsScannerOpen] = useState(false);
-  const [cameraError, setCameraError] = useState<string | null>(null);
-  const [isCameraReady, setIsCameraReady] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showCompletionNotice, setShowCompletionNotice] = useState(false);
   const [processingProgress, setProcessingProgress] = useState(0);
-  const [matchedCard, setMatchedCard] = useState<Card | null>(null);
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [isCameraReady, setIsCameraReady] = useState(false);
+  const [showCaptureFlash, setShowCaptureFlash] = useState(false);
+  const progressTimerRef = useRef<number | null>(null);
+  const completionTimerRef = useRef<number | null>(null);
+  const captureFlashTimerRef = useRef<number | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const processingTimerRef = useRef<number | null>(null);
+
+  const resolvedCandidates = useMemo(
+    () => (scanCandidates.length > 0 ? scanCandidates : ALL_CARDS),
+    [scanCandidates],
+  );
 
   useEffect(() => {
     return () => {
-      if (processingTimerRef.current) {
-        window.clearInterval(processingTimerRef.current);
+      if (progressTimerRef.current) {
+        window.clearInterval(progressTimerRef.current);
+      }
+      if (completionTimerRef.current) {
+        window.clearTimeout(completionTimerRef.current);
+      }
+      if (captureFlashTimerRef.current) {
+        window.clearTimeout(captureFlashTimerRef.current);
       }
       streamRef.current?.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
@@ -47,84 +62,152 @@ export function ScanCardSection({ scanCandidates }: ScanCardSectionProps) {
     };
   }, [isScannerOpen]);
 
-  async function openScanner() {
+  function openScanner() {
     setIsScannerOpen(true);
-    setCameraError(null);
-    setMatchedCard(null);
-    setProcessingProgress(0);
     setIsProcessing(false);
+    setShowCompletionNotice(false);
+    setProcessingProgress(0);
+    setCapturedImage(null);
+    setIsCameraReady(false);
+    setShowCaptureFlash(false);
+  }
 
-    if (!navigator.mediaDevices?.getUserMedia) {
-      setCameraError("Camera access is not supported in this browser.");
-      return;
+  function resetTimers() {
+    if (progressTimerRef.current) {
+      window.clearInterval(progressTimerRef.current);
+      progressTimerRef.current = null;
     }
 
-    try {
-      streamRef.current?.getTracks().forEach((track) => track.stop());
+    if (completionTimerRef.current) {
+      window.clearTimeout(completionTimerRef.current);
+      completionTimerRef.current = null;
+    }
 
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: { ideal: "environment" },
-        },
-        audio: false,
-      });
-
-      streamRef.current = stream;
-      setIsCameraReady(true);
-
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-      }
-    } catch {
-      setIsCameraReady(false);
-      setCameraError("Camera permission was denied or no camera is available.");
+    if (captureFlashTimerRef.current) {
+      window.clearTimeout(captureFlashTimerRef.current);
+      captureFlashTimerRef.current = null;
     }
   }
 
   function closeScanner() {
-    if (processingTimerRef.current) {
-      window.clearInterval(processingTimerRef.current);
-      processingTimerRef.current = null;
-    }
+    resetTimers();
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
     setIsScannerOpen(false);
-    setIsCameraReady(false);
     setIsProcessing(false);
+    setShowCompletionNotice(false);
     setProcessingProgress(0);
-    setMatchedCard(null);
-    setCameraError(null);
+    setCapturedImage(null);
+    setIsCameraReady(false);
+    setShowCaptureFlash(false);
   }
 
   function processScan() {
-    if (!isCameraReady || isProcessing) {
+    if (isProcessing || !isCameraReady) {
       return;
     }
 
-    setMatchedCard(null);
+    const nextCard =
+      resolvedCandidates[Math.floor(Math.random() * resolvedCandidates.length)] ??
+      ALL_CARDS[0];
+    const video = videoRef.current;
+
+    if (!video || video.videoWidth === 0 || video.videoHeight === 0) {
+      return;
+    }
+
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    const context = canvas.getContext("2d");
+
+    if (!context) {
+      return;
+    }
+
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const capturedFrame = canvas.toDataURL("image/jpeg", 0.92);
+
+    resetTimers();
+    setCapturedImage(capturedFrame);
     setIsProcessing(true);
+    setShowCompletionNotice(false);
     setProcessingProgress(0);
+    setShowCaptureFlash(true);
+
+    captureFlashTimerRef.current = window.setTimeout(() => {
+      setShowCaptureFlash(false);
+      captureFlashTimerRef.current = null;
+    }, 260);
 
     const startedAt = Date.now();
-    processingTimerRef.current = window.setInterval(() => {
+    progressTimerRef.current = window.setInterval(() => {
       const elapsed = Date.now() - startedAt;
       const nextProgress = Math.min(100, Math.round((elapsed / SCAN_DURATION_MS) * 100));
 
       setProcessingProgress(nextProgress);
 
       if (elapsed >= SCAN_DURATION_MS) {
-        if (processingTimerRef.current) {
-          window.clearInterval(processingTimerRef.current);
-          processingTimerRef.current = null;
-        }
+        resetTimers();
+        addCapturedCard(nextCard);
         setIsProcessing(false);
-        setMatchedCard(
-          scanCandidates[Math.floor(Math.random() * scanCandidates.length)] ?? ALL_CARDS[0],
-        );
+        setProcessingProgress(100);
+        setShowCompletionNotice(true);
+
+        completionTimerRef.current = window.setTimeout(() => {
+          closeScanner();
+        }, COMPLETION_NOTICE_MS);
       }
     }, 100);
   }
+
+  useEffect(() => {
+    if (!isScannerOpen) {
+      return;
+    }
+
+    let isCancelled = false;
+
+    async function startCamera() {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        return;
+      }
+
+      try {
+        streamRef.current?.getTracks().forEach((track) => track.stop());
+
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { ideal: "environment" },
+          },
+          audio: false,
+        });
+
+        if (isCancelled) {
+          stream.getTracks().forEach((track) => track.stop());
+          return;
+        }
+
+        streamRef.current = stream;
+
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          await videoRef.current.play();
+        }
+
+        setIsCameraReady(true);
+      } catch {
+        setIsCameraReady(false);
+      }
+    }
+
+    startCamera();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [isScannerOpen]);
 
   return (
     <>
@@ -138,147 +221,122 @@ export function ScanCardSection({ scanCandidates }: ScanCardSectionProps) {
       </button>
 
       {isScannerOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6">
-          <button
-            type="button"
-            aria-label="Close scanner popup"
-            className="absolute inset-0 bg-black/55 backdrop-blur-md"
-            onClick={closeScanner}
-          />
+        <div className="fixed inset-0 z-50 bg-background">
+          <div className="relative flex min-h-screen flex-col overflow-hidden px-4 py-4 sm:px-6 sm:py-6">
+            <button
+              type="button"
+              onClick={closeScanner}
+              className="absolute right-4 top-4 z-20 inline-flex h-11 w-11 items-center justify-center rounded-full border border-current/15 bg-background/85 text-foreground shadow-[0_12px_36px_-18px_rgba(0,0,0,0.65)] backdrop-blur-xl transition-colors hover:bg-foreground hover:text-background sm:right-6 sm:top-6"
+              aria-label="Close scanner"
+            >
+              <X className="h-4 w-4" />
+            </button>
 
-          <div className="relative z-10 flex max-h-[94svh] w-full max-w-5xl flex-col overflow-hidden rounded-[1.75rem] border border-current/12 bg-background shadow-[0_40px_120px_-40px_rgba(0,0,0,0.75)] sm:rounded-[2.25rem]">
-            <div className="flex items-start justify-between gap-4 border-b border-current/10 px-4 py-4 sm:px-6 sm:py-5">
-              <div>
-                <h3 className="text-lg font-semibold tracking-[-0.04em] sm:text-2xl">
-                  Live scanner
-                </h3>
-                <p className="mt-1 max-w-2xl text-xs text-foreground/64 sm:text-sm">
-                  Allow camera access, center the card in the rectangle, then press
-                  process to simulate recognition.
-                </p>
-              </div>
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(148,163,184,0.18),transparent_34%),radial-gradient(circle_at_bottom,rgba(15,23,42,0.12),transparent_30%)]" />
 
-              <button
-                type="button"
-                onClick={closeScanner}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-current/15 text-foreground transition-colors hover:bg-foreground hover:text-background"
-                aria-label="Close scanner"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            <div className="grid gap-4 overflow-y-auto p-4 sm:gap-5 sm:p-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-              <div className="relative overflow-hidden rounded-[1.75rem] border border-current/12 bg-black sm:rounded-4xl">
-                <div className="relative aspect-[4/5] min-h-[320px] sm:aspect-video sm:min-h-[420px]">
-                  {cameraError ? (
-                    <div className="absolute inset-0 flex items-center justify-center px-6 text-center text-sm text-white/80">
-                      {cameraError}
-                    </div>
-                  ) : (
-                    <video
-                      ref={videoRef}
-                      autoPlay
-                      muted
-                      playsInline
-                      className="h-full w-full object-cover opacity-85"
+            <div className="relative flex flex-1 items-center justify-center">
+              <div className="relative aspect-[5/7] w-full max-w-[320px] sm:max-w-[360px]">
+                <div className="absolute inset-0 rounded-[2rem] border border-current/15 bg-foreground/[0.03] shadow-[0_35px_120px_-45px_rgba(15,23,42,0.45)] backdrop-blur-sm" />
+                <div className="absolute inset-[14px] overflow-hidden rounded-[1.5rem] border border-current/12 bg-gradient-to-br from-foreground/[0.06] via-transparent to-foreground/[0.03]">
+                  {capturedImage ? (
+                    <Image
+                      src={capturedImage}
+                      alt=""
+                      fill
+                      sizes="(max-width: 640px) 280px, 360px"
+                      className={`object-cover transition-all duration-500 ${
+                        isProcessing ? "scale-[1.03] saturate-125" : "scale-100 opacity-100"
+                      }`}
                     />
+                  ) : (
+                    <>
+                      <video
+                        ref={videoRef}
+                        autoPlay
+                        muted
+                        playsInline
+                        className="h-full w-full object-cover"
+                      />
+                      {!isCameraReady ? (
+                        <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(15,23,42,0.08),rgba(255,255,255,0.02),rgba(15,23,42,0.12))]" />
+                      ) : null}
+                    </>
                   )}
 
-                  <div className="pointer-events-none absolute inset-0 bg-black/30" />
-                  <div className="pointer-events-none absolute left-1/2 top-1/2 aspect-[5/7] w-[180px] max-w-[60vw] -translate-x-1/2 -translate-y-1/2 rounded-[1.4rem] border-2 border-white/90 shadow-[0_0_0_9999px_rgba(0,0,0,0.42)] sm:w-[280px] sm:rounded-3xl">
-                    <div className="absolute inset-2 rounded-2xl border border-dashed border-white/60 sm:inset-3 sm:rounded-2xl" />
-                  </div>
-                </div>
-              </div>
+                  <div
+                    className={`absolute inset-0 bg-white transition-opacity duration-200 ${
+                      showCaptureFlash ? "opacity-95" : "opacity-0"
+                    }`}
+                  />
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_48%,rgba(15,23,42,0.2)_100%)]" />
+                  <div
+                    className={`absolute inset-0 border-[3px] transition-all duration-300 ${
+                      isProcessing
+                        ? "border-emerald-300/95 shadow-[inset_0_0_0_1px_rgba(110,231,183,0.4)]"
+                        : "border-white/65"
+                    }`}
+                  />
+                  {isProcessing ? (
+                    <>
+                      <div className="absolute inset-4 rounded-[1.15rem] border border-emerald-300/40" />
+                      <div className="absolute left-0 top-0 h-12 w-12 rounded-tl-[1.5rem] border-l-4 border-t-4 border-emerald-300/95" />
+                      <div className="absolute right-0 top-0 h-12 w-12 rounded-tr-[1.5rem] border-r-4 border-t-4 border-emerald-300/95" />
+                      <div className="absolute bottom-0 left-0 h-12 w-12 rounded-bl-[1.5rem] border-b-4 border-l-4 border-emerald-300/95" />
+                      <div className="absolute bottom-0 right-0 h-12 w-12 rounded-br-[1.5rem] border-b-4 border-r-4 border-emerald-300/95" />
+                      <div className="absolute inset-0 animate-pulse bg-emerald-300/8" />
+                      <div className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-emerald-300/35" />
+                      <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-emerald-300/28" />
+                    </>
+                  ) : null}
+                  <div
+                    className={`absolute inset-x-0 h-24 bg-gradient-to-b from-emerald-300/0 via-emerald-300/80 to-emerald-300/0 blur-md transition-transform duration-500 ${
+                      isProcessing ? "translate-y-[320%]" : "-translate-y-full"
+                    }`}
+                  />
+                  <div
+                    className={`absolute left-0 top-0 h-full w-20 bg-gradient-to-r from-transparent via-white/18 to-transparent blur-xl transition-transform duration-700 ${
+                      isProcessing ? "translate-x-[320px] sm:translate-x-[360px]" : "-translate-x-full"
+                    }`}
+                  />
 
-              <div className="space-y-4 rounded-[1.75rem] border border-current/12 bg-foreground/3 p-4 sm:rounded-4xl sm:p-5">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-foreground/54">
-                    Scanner
-                  </p>
-                  <p className="mt-2 text-sm leading-6 text-foreground/68">
-                    Keep the card steady inside the centered rectangle for the best
-                    simulated match.
-                  </p>
+                  {isProcessing ? (
+                    <div className="absolute inset-0 bg-black/16" />
+                  ) : null}
                 </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-xs font-medium uppercase tracking-[0.16em] text-foreground/52">
-                    <span>Scan progress</span>
-                    <span>{processingProgress}%</span>
-                  </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-foreground/10">
-                    <div
-                      className="h-full rounded-full bg-foreground transition-[width] duration-100"
-                      style={{ width: `${processingProgress}%` }}
-                    />
-                  </div>
-                </div>
-
-                {matchedCard ? (
-                  <div className="rounded-[1.4rem] border border-current/12 bg-background p-4 sm:rounded-3xl">
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-foreground/52">
-                      Match found
-                    </p>
-                    <div className="mt-3 flex flex-col gap-3 sm:flex-row">
-                      <div className="relative h-24 w-18 shrink-0 overflow-hidden rounded-xl border border-current/10">
-                        <Image
-                          src={matchedCard.image}
-                          alt={matchedCard.name}
-                          fill
-                          sizes="72px"
-                          className="object-cover"
-                        />
-                      </div>
-                      <div className="min-w-0 space-y-2">
-                        <p className="text-sm font-semibold sm:truncate">{matchedCard.name}</p>
-                        <p className="text-xs text-foreground/60 sm:truncate">
-                          {matchedCard.description}
-                        </p>
-                        <Link
-                          href={`/collection/${matchedCard.id}`}
-                          className="inline-flex w-full items-center justify-center rounded-full border border-current/15 px-3 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-foreground hover:text-background sm:w-auto sm:py-1.5"
-                        >
-                          Reveal card
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <p className="text-sm text-foreground/58">
-                    After processing, the scanner will reveal a matching card from the
-                    current card catalog.
-                  </p>
-                )}
               </div>
             </div>
 
-            <div className="flex flex-col-reverse gap-3 border-t border-current/10 px-4 py-4 sm:flex-row sm:justify-end sm:px-6 sm:py-5">
-              <button
-                type="button"
-                onClick={closeScanner}
-                className="inline-flex w-full items-center justify-center rounded-full border border-current/15 px-5 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-foreground hover:text-background sm:w-auto"
-              >
-                Cancel
-              </button>
-
+            <div className="relative flex justify-center pb-4 pt-2 sm:pb-6">
               <button
                 type="button"
                 onClick={processScan}
-                disabled={!isCameraReady || isProcessing || !!cameraError}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-current/15 bg-foreground px-5 py-3 text-sm font-semibold text-background transition-colors disabled:cursor-not-allowed disabled:opacity-45 sm:w-auto"
+                disabled={isProcessing}
+                className="inline-flex h-14 w-14 items-center justify-center rounded-full border border-current/15 bg-foreground text-background shadow-[0_20px_50px_-24px_rgba(15,23,42,0.7)] transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-80"
+                aria-label="Send scan"
               >
                 {isProcessing ? (
-                  <>
-                    <LoaderCircle className="h-4 w-4 animate-spin" />
-                    Processing...
-                  </>
+                  <LoaderCircle className="h-5 w-5 animate-spin" />
                 ) : (
-                  "Process"
+                  <Send className="h-5 w-5" />
                 )}
               </button>
             </div>
+
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1">
+              <div
+                className="h-full bg-foreground transition-[width] duration-100"
+                style={{ width: `${processingProgress}%` }}
+              />
+            </div>
+
+            {showCompletionNotice ? (
+              <div className="pointer-events-none absolute inset-x-0 top-6 z-20 flex justify-center px-4">
+                <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500 px-4 py-2 text-sm font-semibold text-white shadow-[0_20px_40px_-24px_rgba(16,185,129,0.85)]">
+                  <Check className="h-4 w-4" />
+                  <span>Scanning completed</span>
+                </div>
+              </div>
+            ) : null}
           </div>
         </div>
       ) : null}
