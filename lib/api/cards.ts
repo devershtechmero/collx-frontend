@@ -33,3 +33,13 @@ export const searchCollectionCards = (query: string, limit: number, page = 1) =>
   });
 
 export const getCollectionCardById = (id: string) => request(`/card/${id}`);
+
+export const getCollectionCardPriceHistory = (
+  card_id: string,
+  grade: string,
+  days: string | number = "30",
+) =>
+  request("/card/price-history", {
+    method: "POST",
+    body: JSON.stringify({ card_id, grade, days: String(days) }),
+  });

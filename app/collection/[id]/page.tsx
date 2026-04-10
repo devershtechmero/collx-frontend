@@ -5,11 +5,16 @@ import Image from "next/image";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, LoaderCircle } from "lucide-react";
 import { useParams } from "next/navigation";
-import { useMemo, useRef } from "react";
+import { useMemo, useRef, useState } from "react";
 
+import { PriceAnalysisSection } from "@/components/pages/collection/price-analysis-section";
 import { SiteHeader } from "@/components/shared/layout/site-header";
 import { SiteFooter } from "@/components/sections/home/site-footer";
-import { getCollectionCardById, getCollectionData } from "@/lib/api/cards";
+import {
+  getCollectionCardById,
+  getCollectionCardPriceHistory,
+  getCollectionData,
+} from "@/lib/api/cards";
 import {
   extractCardList,
   extractSingleCard,
@@ -17,6 +22,7 @@ import {
   getTrendScore,
   type Card,
 } from "@/lib/cards";
+import { extractPriceHistory } from "@/lib/price-history";
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("en-US", {
@@ -150,6 +156,8 @@ function LoadingState() {
 export default function CollectionDetailPage() {
   const params = useParams<{ id: string }>();
   const relatedCardsLimit = 80;
+  const [selectedGrade, setSelectedGrade] = useState("PSA 10");
+  const [selectedPeriod, setSelectedPeriod] = useState("-30");
 
   const cardQuery = useQuery({
     queryKey: ["card-detail", params.id],
@@ -168,9 +176,29 @@ export default function CollectionDetailPage() {
   });
 
   const card = cardQuery.data ?? null;
+
+  const historyQuery = useQuery({
+    queryKey: ["card-price-history", params.id, selectedGrade, selectedPeriod],
+    enabled: Boolean(params.id),
+    queryFn: async () => {
+      const payload = await getCollectionCardPriceHistory(
+        params.id,
+        selectedGrade,
+        selectedPeriod,
+      );
+
+      return {
+        grade: selectedGrade,
+        points: extractPriceHistory(payload),
+      };
+    },
+  });
+
   const catalogCards = useMemo(() => catalogQuery.data ?? [], [catalogQuery.data]);
   const error = cardQuery.error ?? catalogQuery.error;
   const isLoading = cardQuery.isPending || catalogQuery.isPending;
+  const priceHistory = historyQuery.data?.points ?? [];
+  const historyGrade = historyQuery.data?.grade ?? selectedGrade;
 
   const allCards = useMemo(() => {
     const merged = card ? [card, ...catalogCards] : [...catalogCards];
@@ -314,11 +342,6 @@ export default function CollectionDetailPage() {
                     Rookie: {card.rookie ? "Yes" : "No"}
                   </span>
                 ) : null}
-                {card.card_id ? (
-                  <span className="rounded-full border border-current/10 bg-background/70 px-3 py-1.5">
-                    Card ID: {card.card_id}
-                  </span>
-                ) : null}
               </div>
             </div>
 
@@ -371,6 +394,28 @@ export default function CollectionDetailPage() {
             </div>
           </div>
         </div>
+
+        <PriceAnalysisSection
+          points={priceHistory}
+          gradeLabel={historyGrade}
+          daysLabel={
+            selectedPeriod === "-30"
+              ? "30 days"
+              : selectedPeriod === "-180"
+                ? "6 months"
+                : selectedPeriod === "-365"
+                  ? "1 year"
+                  : "2 year"
+          }
+          isLoading={historyQuery.isPending}
+          errorMessage={
+            historyQuery.error instanceof Error ? historyQuery.error.message : undefined
+          }
+          selectedGrade={selectedGrade}
+          onGradeChange={setSelectedGrade}
+          selectedPeriod={selectedPeriod}
+          onPeriodChange={setSelectedPeriod}
+        />
 
         <RecommendationSection
           title="Trending cards"
