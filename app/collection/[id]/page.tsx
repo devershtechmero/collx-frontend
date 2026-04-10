@@ -1,5 +1,6 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
 import Image from "next/image";
 import Link from "next/link";
 import { Heart, ChevronLeft, ChevronRight, LoaderCircle } from "lucide-react";
@@ -211,52 +212,28 @@ function LoadingState() {
 
 export default function CollectionDetailPage() {
   const params = useParams<{ id: string }>();
-  const [card, setCard] = useState<Card | null>(null);
-  const [catalogCards, setCatalogCards] = useState<Card[]>([]);
   const [isLiked, setIsLiked] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    let isCancelled = false;
+  const cardQuery = useQuery({
+    queryKey: ["card-detail", params.id],
+    queryFn: async () => {
+      const payload = await getCollectionCardById(params.id);
+      return extractSingleCard(payload);
+    },
+  });
 
-    async function loadPageData() {
-      setIsLoading(true);
-      setError(null);
+  const catalogQuery = useQuery({
+    queryKey: ["card-catalog", 200, 1],
+    queryFn: async () => {
+      const payload = await getCollectionData(200, 1);
+      return extractCardList(payload);
+    },
+  });
 
-      try {
-        const [detailPayload, catalogPayload] = await Promise.all([
-          getCollectionCardById(params.id),
-          getCollectionData(200, 1),
-        ]);
-
-        if (isCancelled) {
-          return;
-        }
-
-        setCard(extractSingleCard(detailPayload));
-        setCatalogCards(extractCardList(catalogPayload));
-      } catch (fetchError) {
-        if (isCancelled) {
-          return;
-        }
-
-        setCard(null);
-        setCatalogCards([]);
-        setError(fetchError instanceof Error ? fetchError.message : "Failed to load card.");
-      } finally {
-        if (!isCancelled) {
-          setIsLoading(false);
-        }
-      }
-    }
-
-    loadPageData();
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [params.id]);
+  const card = cardQuery.data ?? null;
+  const catalogCards = useMemo(() => catalogQuery.data ?? [], [catalogQuery.data]);
+  const error = cardQuery.error ?? catalogQuery.error;
+  const isLoading = cardQuery.isPending || catalogQuery.isPending;
 
   useEffect(() => {
     if (!card) return;
@@ -332,7 +309,9 @@ export default function CollectionDetailPage() {
       <main className="min-h-screen">
         <SiteHeader />
         <section className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-4 py-8 sm:px-6 lg:px-12 lg:py-10">
-          <EmptyState message={error} />
+          <EmptyState
+            message={error instanceof Error ? error.message : "Failed to load card."}
+          />
         </section>
         <SiteFooter />
       </main>

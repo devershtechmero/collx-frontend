@@ -1,9 +1,10 @@
 "use client";
 
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import Image from "next/image";
 import Link from "next/link";
 import { Heart, LoaderCircle, Search } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 
 import { ScanCardSection } from "@/components/pages/collection/scan-card-section";
 import { SiteHeader } from "@/components/shared/layout/site-header";
@@ -153,11 +154,7 @@ export function CollectionBrowserPage() {
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<string>("All");
   const [currentPage, setCurrentPage] = useState(1);
-  const [cards, setCards] = useState<Card[]>([]);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalCount, setTotalCount] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const deferredSearch = useDeferredValue(search);
 
   function handleSearchChange(event: React.ChangeEvent<HTMLInputElement>) {
     setSearch(event.target.value);
@@ -169,50 +166,32 @@ export function CollectionBrowserPage() {
     setCurrentPage(1);
   }
 
-  useEffect(() => {
-    let isCancelled = false;
-    const trimmedQuery = search.trim();
+  const trimmedSearch = deferredSearch.trim();
 
-    const timer = window.setTimeout(async () => {
-      setIsLoading(true);
-      setError(null);
+  const {
+    data,
+    error,
+    isPending,
+    isFetching,
+  } = useQuery({
+    queryKey: ["collection-cards", trimmedSearch, currentPage],
+    queryFn: async () => {
+      const payload = trimmedSearch
+        ? await searchCollectionCards(trimmedSearch, ITEMS_PER_PAGE, currentPage)
+        : await getCollectionData(ITEMS_PER_PAGE, currentPage);
 
-      try {
-        const payload = trimmedQuery
-          ? await searchCollectionCards(trimmedQuery, ITEMS_PER_PAGE, currentPage)
-          : await getCollectionData(ITEMS_PER_PAGE, currentPage);
+      return {
+        cards: extractCardList(payload),
+        meta: extractPaginationMeta(payload),
+      };
+    },
+    placeholderData: keepPreviousData,
+  });
 
-        if (isCancelled) {
-          return;
-        }
-
-        setCards(extractCardList(payload));
-        const meta = extractPaginationMeta(payload);
-        setTotalPages(meta.pages);
-        setTotalCount(meta.count);
-      } catch (fetchError) {
-        if (isCancelled) {
-          return;
-        }
-
-        setCards([]);
-        setTotalPages(1);
-        setTotalCount(0);
-        setError(fetchError instanceof Error ? fetchError.message : "Failed to load cards.");
-      } finally {
-        if (!isCancelled) {
-          setIsLoading(false);
-        }
-      }
-    }, trimmedQuery ? 300 : 0);
-
-    return () => {
-      isCancelled = true;
-      window.clearTimeout(timer);
-    };
-  }, [currentPage, search]);
-
-  const query = search.trim().toLowerCase();
+  const cards = useMemo(() => data?.cards ?? [], [data]);
+  const totalPages = data?.meta.pages ?? 1;
+  const totalCount = data?.meta.count ?? 0;
+  const query = trimmedSearch.toLowerCase();
 
   const categories = useMemo(() => getCardCategories(cards), [cards]);
 
@@ -294,17 +273,17 @@ export function CollectionBrowserPage() {
               </p>
             </div>
 
-            {isLoading ? (
+            {isPending || isFetching ? (
               <LoadingGrid />
             ) : null}
 
             {error ? (
               <div className="rounded-4xl border border-rose-500/20 bg-rose-500/6 px-6 py-5 text-sm text-rose-700">
-                {error}
+                {error instanceof Error ? error.message : "Failed to load cards."}
               </div>
             ) : null}
 
-            {!isLoading ? (
+            {!isPending ? (
               <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
                 {filteredCards.map((card) => (
                   <CollectionCard key={card.id} card={card} />
@@ -312,7 +291,7 @@ export function CollectionBrowserPage() {
               </div>
             ) : null}
 
-            {!isLoading && filteredCards.length === 0 ? (
+            {!isPending && filteredCards.length === 0 ? (
               <div className="rounded-4xl border border-dashed border-current/15 px-6 py-16 text-center">
                 <h3 className="text-xl font-semibold">No cards found</h3>
                 <p className="mt-2 text-sm text-foreground/62">
@@ -321,7 +300,7 @@ export function CollectionBrowserPage() {
               </div>
             ) : null}
 
-            {!isLoading ? (
+            {!isPending ? (
               <Pagination
                 currentPage={resolvedCurrentPage}
                 totalPages={totalPages}
