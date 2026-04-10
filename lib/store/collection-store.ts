@@ -6,6 +6,9 @@ const LIKED_STORAGE_KEY = "collx_liked_cards";
 const FOR_SALE_STORAGE_KEY = "collx_for_sale_cards";
 export const COLLECTION_STORAGE_EVENT = "collx-storage-updated";
 
+const cardCache = new Map<string, Card[]>();
+const idCache = new Map<string, string[]>();
+
 const normalizeCard = (card: Card): Card => ({
   ...card,
   dateAdded: card.dateAdded ?? new Date().toISOString(),
@@ -13,24 +16,44 @@ const normalizeCard = (card: Card): Card => ({
 
 const readCards = (key: string): Card[] => {
   if (typeof window === "undefined") return [];
+  const cached = cardCache.get(key);
+
+  if (cached) {
+    return cached;
+  }
+
   const stored = localStorage.getItem(key);
-  return stored ? JSON.parse(stored).map((card: Card) => normalizeCard(card)) : [];
+  const cards = stored
+    ? JSON.parse(stored).map((card: Card) => normalizeCard(card))
+    : [];
+  cardCache.set(key, cards);
+  return cards;
 };
 
 const writeCards = (key: string, cards: Card[]) => {
   if (typeof window === "undefined") return;
+  cardCache.set(key, cards);
   localStorage.setItem(key, JSON.stringify(cards));
   window.dispatchEvent(new Event(COLLECTION_STORAGE_EVENT));
 };
 
 const readIds = (key: string): string[] => {
   if (typeof window === "undefined") return [];
+  const cached = idCache.get(key);
+
+  if (cached) {
+    return cached;
+  }
+
   const stored = localStorage.getItem(key);
-  return stored ? JSON.parse(stored) : [];
+  const ids = stored ? JSON.parse(stored) : [];
+  idCache.set(key, ids);
+  return ids;
 };
 
 const writeIds = (key: string, ids: string[]) => {
   if (typeof window === "undefined") return;
+  idCache.set(key, ids);
   localStorage.setItem(key, JSON.stringify(ids));
   window.dispatchEvent(new Event(COLLECTION_STORAGE_EVENT));
 };
@@ -55,12 +78,15 @@ export const addCapturedCard = (card: Card) => {
 
 export const clearCapturedCards = () => {
   if (typeof window === "undefined") return;
+  cardCache.delete(STORAGE_KEY);
   localStorage.removeItem(STORAGE_KEY);
   window.dispatchEvent(new Event(COLLECTION_STORAGE_EVENT));
 };
 
 export const clearAllCollectionData = () => {
   if (typeof window === "undefined") return;
+  cardCache.clear();
+  idCache.clear();
   localStorage.removeItem(STORAGE_KEY);
   localStorage.removeItem(SAVED_STORAGE_KEY);
   localStorage.removeItem(LIKED_STORAGE_KEY);

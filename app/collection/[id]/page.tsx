@@ -3,9 +3,9 @@
 import { useQuery } from "@tanstack/react-query";
 import Image from "next/image";
 import Link from "next/link";
-import { Heart, ChevronLeft, ChevronRight, LoaderCircle } from "lucide-react";
+import { ChevronLeft, ChevronRight, LoaderCircle } from "lucide-react";
 import { useParams } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef } from "react";
 
 import { SiteHeader } from "@/components/shared/layout/site-header";
 import { SiteFooter } from "@/components/sections/home/site-footer";
@@ -15,14 +15,8 @@ import {
   extractSingleCard,
   getPrimaryPrice,
   getTrendScore,
-  pickDeterministicRandomCard,
   type Card,
 } from "@/lib/cards";
-import {
-  COLLECTION_STORAGE_EVENT,
-  isCardLiked,
-  toggleLikedCard,
-} from "@/lib/store/collection-store";
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("en-US", {
@@ -32,46 +26,7 @@ function formatCurrency(value: number) {
   }).format(value);
 }
 
-function getGainBadge(gain?: number) {
-  if (typeof gain !== "number") {
-    return {
-      label: "No trend",
-      className: "border-slate-400/20 bg-slate-500/10 text-slate-600",
-    };
-  }
-
-  if (gain > 0) {
-    return {
-      label: `+${(gain * 100).toFixed(2)}%`,
-      className: "border-emerald-500/20 bg-emerald-500/12 text-emerald-600",
-    };
-  }
-
-  if (gain < 0) {
-    return {
-      label: `${(gain * 100).toFixed(2)}%`,
-      className: "border-rose-500/20 bg-rose-500/12 text-rose-600",
-    };
-  }
-
-  return {
-    label: "0.00%",
-    className: "border-slate-400/20 bg-slate-500/10 text-slate-600",
-  };
-}
-
 function RecommendationCard({ card }: { card: Card }) {
-  const [isLiked, setIsLiked] = useState(false);
-
-  useEffect(() => {
-    const syncLikedState = () => setIsLiked(isCardLiked(card.id));
-
-    syncLikedState();
-    window.addEventListener(COLLECTION_STORAGE_EVENT, syncLikedState);
-
-    return () => window.removeEventListener(COLLECTION_STORAGE_EVENT, syncLikedState);
-  }, [card.id]);
-
   return (
     <article className="group overflow-hidden rounded-4xl border border-current/12 bg-foreground/3 transition-transform duration-300 hover:-translate-y-1">
       <Link href={`/collection/${card.id}`} className="block">
@@ -87,24 +42,6 @@ function RecommendationCard({ card }: { card: Card }) {
           <div className="absolute left-4 top-4 rounded-full border border-white/20 bg-black/35 px-3 py-1 text-xs font-semibold text-white backdrop-blur-md">
             {card.category}
           </div>
-
-          <button
-            type="button"
-            onClick={(event) => {
-              event.preventDefault();
-              event.stopPropagation();
-              setIsLiked(toggleLikedCard(card));
-            }}
-            className={`absolute right-4 top-4 inline-flex h-10 w-10 items-center justify-center rounded-full border backdrop-blur-md transition-colors ${
-              isLiked
-                ? "border-red-500 bg-red-500 text-white"
-                : "border-white/20 bg-black/35 text-white hover:border-red-500 hover:bg-red-500"
-            }`}
-            aria-pressed={isLiked}
-            aria-label={isLiked ? `Unlike ${card.name}` : `Like ${card.name}`}
-          >
-            <Heart className="h-4 w-4" fill={isLiked ? "currentColor" : "none"} />
-          </button>
         </div>
       </Link>
 
@@ -212,7 +149,7 @@ function LoadingState() {
 
 export default function CollectionDetailPage() {
   const params = useParams<{ id: string }>();
-  const [isLiked, setIsLiked] = useState(false);
+  const relatedCardsLimit = 80;
 
   const cardQuery = useQuery({
     queryKey: ["card-detail", params.id],
@@ -223,9 +160,9 @@ export default function CollectionDetailPage() {
   });
 
   const catalogQuery = useQuery({
-    queryKey: ["card-catalog", 200, 1],
+    queryKey: ["card-catalog", relatedCardsLimit, 1],
     queryFn: async () => {
-      const payload = await getCollectionData(200, 1);
+      const payload = await getCollectionData(relatedCardsLimit, 1);
       return extractCardList(payload);
     },
   });
@@ -234,17 +171,6 @@ export default function CollectionDetailPage() {
   const catalogCards = useMemo(() => catalogQuery.data ?? [], [catalogQuery.data]);
   const error = cardQuery.error ?? catalogQuery.error;
   const isLoading = cardQuery.isPending || catalogQuery.isPending;
-
-  useEffect(() => {
-    if (!card) return;
-
-    const syncLikedState = () => setIsLiked(isCardLiked(card.id));
-
-    syncLikedState();
-    window.addEventListener(COLLECTION_STORAGE_EVENT, syncLikedState);
-
-    return () => window.removeEventListener(COLLECTION_STORAGE_EVENT, syncLikedState);
-  }, [card]);
 
   const allCards = useMemo(() => {
     const merged = card ? [card, ...catalogCards] : [...catalogCards];
@@ -279,17 +205,6 @@ export default function CollectionDetailPage() {
     return allCards
       .filter((entry) => entry.id !== card.id && entry.category === card.category)
       .slice(0, 10);
-  }, [allCards, card]);
-
-  const randomSuggestion = useMemo(() => {
-    if (!card) {
-      return null;
-    }
-
-    return pickDeterministicRandomCard(
-      allCards.filter((entry) => entry.id !== card.id),
-      card.id,
-    );
   }, [allCards, card]);
 
   if (isLoading) {
@@ -330,7 +245,6 @@ export default function CollectionDetailPage() {
     );
   }
 
-  const gainBadge = getGainBadge(card.gain);
   const detailStats = [
     { label: "Player", value: card.player ?? "Unknown" },
     { label: "Set", value: card.set ?? "Unknown" },
@@ -369,7 +283,7 @@ export default function CollectionDetailPage() {
 
           <div className="flex flex-col justify-center space-y-6">
             <div className="space-y-5">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div className="flex flex-col gap-4">
                 <div className="space-y-3">
                   <p className="text-sm font-medium uppercase tracking-[0.2em] text-foreground/58">
                     {card.category}
@@ -382,12 +296,6 @@ export default function CollectionDetailPage() {
                     {card.set}
                     {card.number ? ` • #${card.number}` : ""}
                   </p>
-                </div>
-
-                <div
-                  className={`inline-flex w-fit items-center rounded-full border px-4 py-2 text-sm font-semibold ${gainBadge.className}`}
-                >
-                  {gainBadge.label}
                 </div>
               </div>
 
@@ -461,21 +369,6 @@ export default function CollectionDetailPage() {
                 </div>
               ) : null}
             </div>
-
-            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-              <button
-                type="button"
-                onClick={() => setIsLiked(toggleLikedCard(card))}
-                className={`inline-flex items-center gap-2 rounded-full border px-5 py-3 text-sm font-semibold transition-colors ${
-                  isLiked
-                    ? "border-foreground bg-foreground text-background"
-                    : "border-current/15 text-foreground hover:bg-foreground hover:text-background"
-                }`}
-              >
-                <Heart className="h-4 w-4" fill={isLiked ? "currentColor" : "none"} />
-                {isLiked ? "Liked" : "Like this card"}
-              </button>
-            </div>
           </div>
         </div>
 
@@ -489,12 +382,6 @@ export default function CollectionDetailPage() {
           title="Explore same category"
           description={`Keep browsing more ${card.category.toLowerCase()} cards from this backend dataset.`}
           cards={sameCategoryCards}
-        />
-
-        <RecommendationSection
-          title="Random suggestion"
-          description="One more card you might want to check while you are here."
-          cards={randomSuggestion ? [randomSuggestion] : []}
         />
       </section>
 

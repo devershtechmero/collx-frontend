@@ -20,6 +20,7 @@ export interface Card {
   variant?: string;
   rookie?: boolean;
   gain?: number;
+  receivedGain?: number;
   card_id?: string;
   prices?: CardPrice[];
   "30 Day Sales"?: number;
@@ -92,6 +93,8 @@ const normalizeGain = (value: unknown, change?: string) => {
   return typeof parsedChange === "number" ? parsedChange / 100 : undefined;
 };
 
+const pickFirstValue = (values: unknown[]) => values.find((value) => value != null);
+
 const normalizePrices = (value: unknown): CardPrice[] | undefined => {
   if (!Array.isArray(value)) {
     return undefined;
@@ -137,6 +140,16 @@ export const normalizeCard = (value: unknown, index = 0): Card => {
   const record = asRecord(value) ?? {};
   const prices = normalizePrices(record.prices);
   const change = asString(record.change);
+  const receivedGain = normalizeGain(
+    pickFirstValue([
+      record.received_gain,
+      record.receivedGain,
+      record.received_gain_percentage,
+      record.receivedGainPercentage,
+      record.received_gain_percent,
+      record.receivedGainPercent,
+    ]),
+  );
   const player = asString(record.player);
   const set = asString(record.set);
   const number = asString(record.number);
@@ -196,6 +209,7 @@ export const normalizeCard = (value: unknown, index = 0): Card => {
     variant: asString(record.variant),
     rookie: asBoolean(record.rookie),
     gain: normalizeGain(record.gain, change),
+    receivedGain,
     prices,
     "30 Day Sales": asNumber(record["30 Day Sales"]) ?? asNumber(record.sales_30d),
     "7 Day Sales": asNumber(record["7 Day Sales"]) ?? asNumber(record.sales_7d),

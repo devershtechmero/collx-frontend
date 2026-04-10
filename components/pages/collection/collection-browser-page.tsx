@@ -3,8 +3,8 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import Image from "next/image";
 import Link from "next/link";
-import { Heart, LoaderCircle, Search } from "lucide-react";
-import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import { LoaderCircle, Search } from "lucide-react";
+import { useDeferredValue, useMemo, useState } from "react";
 
 import { ScanCardSection } from "@/components/pages/collection/scan-card-section";
 import { SiteHeader } from "@/components/shared/layout/site-header";
@@ -16,13 +16,37 @@ import {
   getCardCategories,
   type Card,
 } from "@/lib/cards";
-import {
-  COLLECTION_STORAGE_EVENT,
-  isCardLiked,
-  toggleLikedCard,
-} from "@/lib/store/collection-store";
 
-const ITEMS_PER_PAGE = 12;
+const ITEMS_PER_PAGE = 48;
+const CATEGORY_SOURCE_LIMIT = 1000;
+
+function getGainBadge(gain?: number) {
+  if (typeof gain !== "number" || Object.is(gain, -0)) {
+    return {
+      label: "0.00%",
+      className: "border-white/15 bg-black/70 text-slate-200",
+    };
+  }
+
+  if (gain > 0) {
+    return {
+      label: `+${(gain * 100).toFixed(2)}%`,
+      className: "border-emerald-400/30 bg-black/70 text-emerald-300",
+    };
+  }
+
+  if (gain < 0) {
+    return {
+      label: `${(gain * 100).toFixed(2)}%`,
+      className: "border-rose-400/30 bg-black/70 text-rose-300",
+    };
+  }
+
+  return {
+    label: "0.00%",
+    className: "border-white/15 bg-black/70 text-slate-200",
+  };
+}
  
 function Pagination({
   currentPage,
@@ -80,16 +104,7 @@ function Pagination({
 }
 
 function CollectionCard({ card }: { card: Card }) {
-  const [isLiked, setIsLiked] = useState(false);
-
-  useEffect(() => {
-    const syncLikedState = () => setIsLiked(isCardLiked(card.id));
-
-    syncLikedState();
-    window.addEventListener(COLLECTION_STORAGE_EVENT, syncLikedState);
-
-    return () => window.removeEventListener(COLLECTION_STORAGE_EVENT, syncLikedState);
-  }, [card.id]);
+  const gainBadge = getGainBadge(card.receivedGain ?? card.gain);
 
   return (
     <article className="group overflow-hidden rounded-4xl border border-current/12 bg-foreground/3 transition-transform duration-300 hover:-translate-y-1">
@@ -105,24 +120,11 @@ function CollectionCard({ card }: { card: Card }) {
           <div className="absolute left-4 top-4 rounded-full border border-white/20 bg-black/35 px-3 py-1 text-xs font-semibold text-white backdrop-blur-md">
             {card.category}
           </div>
-
-          <button
-            type="button"
-            onClick={(event) => {
-              event.preventDefault();
-              event.stopPropagation();
-              setIsLiked(toggleLikedCard(card));
-            }}
-            className={`absolute right-4 top-4 inline-flex h-10 w-10 items-center justify-center rounded-full border backdrop-blur-md transition-colors ${
-              isLiked
-                ? "border-red-500 bg-red-500 text-white"
-                : "border-white/20 bg-black/35 text-white hover:bg-red-500 hover:border-red-500"
-            }`}
-            aria-pressed={isLiked}
-            aria-label={isLiked ? `Unlike ${card.name}` : `Like ${card.name}`}
+          <div
+            className={`absolute right-4 top-4 rounded-full border px-3 py-1 text-xs font-semibold backdrop-blur-md ${gainBadge.className}`}
           >
-            <Heart className="h-4 w-4" fill={isLiked ? "currentColor" : "none"} />
-          </button>
+            {gainBadge.label}
+          </div>
         </div>
       </Link>
 
@@ -167,6 +169,7 @@ export function CollectionBrowserPage() {
   }
 
   const trimmedSearch = deferredSearch.trim();
+  const isCategoryFiltered = activeCategory !== "All";
 
   const {
     data,
@@ -174,8 +177,38 @@ export function CollectionBrowserPage() {
     isPending,
     isFetching,
   } = useQuery({
-    queryKey: ["collection-cards", trimmedSearch, currentPage],
+    queryKey: ["collection-cards", trimmedSearch, activeCategory, currentPage],
     queryFn: async () => {
+      if (isCategoryFiltered) {
+        const payload = await searchCollectionCards(activeCategory, CATEGORY_SOURCE_LIMIT, 1);
+        const categoryCards = extractCardList(payload).filter(
+          (card) => card.category === activeCategory,
+        );
+        const filteredBySearch =
+          trimmedSearch.length === 0
+            ? categoryCards
+            : categoryCards.filter((card) => {
+                const query = trimmedSearch.toLowerCase();
+
+                return (
+                  card.name.toLowerCase().includes(query) ||
+                  card.player?.toLowerCase().includes(query) ||
+                  card.set?.toLowerCase().includes(query) ||
+                  card.description?.toLowerCase().includes(query)
+                );
+              });
+        const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+        const paginatedCards = filteredBySearch.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
+        return {
+          cards: paginatedCards,
+          meta: {
+            pages: Math.max(1, Math.ceil(filteredBySearch.length / ITEMS_PER_PAGE)),
+            count: filteredBySearch.length,
+          },
+        };
+      }
+
       const payload = trimmedSearch
         ? await searchCollectionCards(trimmedSearch, ITEMS_PER_PAGE, currentPage)
         : await getCollectionData(ITEMS_PER_PAGE, currentPage);
@@ -188,25 +221,41 @@ export function CollectionBrowserPage() {
     placeholderData: keepPreviousData,
   });
 
+  const categoryCatalogQuery = useQuery({
+    queryKey: ["collection-categories", CATEGORY_SOURCE_LIMIT],
+    queryFn: async () => {
+      const payload = await getCollectionData(CATEGORY_SOURCE_LIMIT, 1);
+      return extractCardList(payload);
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
   const cards = useMemo(() => data?.cards ?? [], [data]);
+  const categorySourceCards = useMemo(
+    () => categoryCatalogQuery.data ?? [],
+    [categoryCatalogQuery.data],
+  );
   const totalPages = data?.meta.pages ?? 1;
   const totalCount = data?.meta.count ?? 0;
   const query = trimmedSearch.toLowerCase();
 
-  const categories = useMemo(() => getCardCategories(cards), [cards]);
+  const categories = useMemo(
+    () => getCardCategories(categorySourceCards.length > 0 ? categorySourceCards : cards),
+    [categorySourceCards, cards],
+  );
 
-  const filteredCards = cards.filter((card) => {
-    const matchesCategory =
-      activeCategory === "All" || card.category === activeCategory;
-    const matchesSearch =
-      query.length === 0 ||
-      card.name.toLowerCase().includes(query) ||
-      card.player?.toLowerCase().includes(query) ||
-      card.set?.toLowerCase().includes(query) ||
-      card.description?.toLowerCase().includes(query);
+  const filteredCards = isCategoryFiltered
+    ? cards
+    : cards.filter((card) => {
+        const matchesSearch =
+          query.length === 0 ||
+          card.name.toLowerCase().includes(query) ||
+          card.player?.toLowerCase().includes(query) ||
+          card.set?.toLowerCase().includes(query) ||
+          card.description?.toLowerCase().includes(query);
 
-    return matchesCategory && matchesSearch;
-  });
+        return matchesSearch;
+      });
   const resolvedCurrentPage = Math.min(currentPage, totalPages);
 
   function handlePageChange(page: number) {
